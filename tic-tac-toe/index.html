@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tic-Tac-Toe — Game Arcade</title>
+    <link rel="stylesheet" href="../shared.css" />
+    <style>
+      .board {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 0.5rem;
+        width: min(100%, 300px);
+      }
+
+      .cell {
+        aspect-ratio: 1;
+        background: var(--surface-hover);
+        border: 3px solid var(--ocean);
+        border-radius: var(--radius);
+        font-size: 2.5rem;
+        font-weight: 700;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: background 0.15s ease, transform 0.1s ease;
+      }
+
+      .cell:hover:not(:disabled) {
+        background: rgba(0, 217, 255, 0.12);
+        transform: scale(1.03);
+      }
+
+      .cell:disabled {
+        cursor: default;
+      }
+
+      .cell.x {
+        color: var(--berry);
+      }
+
+      .cell.o {
+        color: var(--ocean);
+      }
+
+      .cell.win {
+        background: rgba(57, 255, 20, 0.15);
+        border-color: var(--neon-green);
+        box-shadow: 0 0 12px rgba(57, 255, 20, 0.35);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <main class="main">
+        <a class="back-link" href="../index.html">← Back to Arcade</a>
+
+        <header class="header">
+          <div class="game-card-icon" aria-hidden="true">⭕</div>
+          <h1>Tic-Tac-Toe</h1>
+        </header>
+
+        <div class="game-panel">
+          <p class="status" id="status">Player X's turn</p>
+          <div class="board" id="board" role="grid" aria-label="Tic-tac-toe board"></div>
+          <button class="btn btn-secondary" id="restart" type="button">Play again</button>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      const boardEl = document.getElementById("board");
+      const statusEl = document.getElementById("status");
+      const restartBtn = document.getElementById("restart");
+
+      const WIN_LINES = [
+        [0, 1, 2], [3, 4, 5], [6, 7, 8],
+        [0, 3, 6], [1, 4, 7], [2, 5, 8],
+        [0, 4, 8], [2, 4, 6],
+      ];
+
+      let board = Array(9).fill("");
+      let currentPlayer = "X";
+      let gameOver = false;
+
+      function render() {
+        boardEl.innerHTML = "";
+        board.forEach((value, index) => {
+          const cell = document.createElement("button");
+          cell.className = "cell" + (value ? " " + value.toLowerCase() : "");
+          cell.type = "button";
+          cell.textContent = value;
+          cell.disabled = gameOver || value !== "";
+          cell.setAttribute("aria-label", "Cell " + (index + 1) + (value ? ", " + value : ", empty"));
+          cell.addEventListener("click", () => play(index));
+          boardEl.appendChild(cell);
+        });
+      }
+
+      function checkWinner() {
+        for (const [a, b, c] of WIN_LINES) {
+          if (board[a] && board[a] === board[b] && board[a] === board[c]) {
+            return { winner: board[a], line: [a, b, c] };
+          }
+        }
+        if (board.every((cell) => cell !== "")) {
+          return { winner: null, line: null, tie: true };
+        }
+        return null;
+      }
+
+      function highlightWin(line) {
+        const cells = boardEl.querySelectorAll(".cell");
+        line.forEach((i) => cells[i].classList.add("win"));
+      }
+
+      function play(index) {
+        if (gameOver || board[index] !== "") return;
+
+        board[index] = currentPlayer;
+        const result = checkWinner();
+
+        if (result) {
+          gameOver = true;
+          render();
+          if (result.tie) {
+            statusEl.textContent = "It's a tie!";
+          } else {
+            highlightWin(result.line);
+            statusEl.textContent = "Player " + result.winner + " wins! 🎉";
+          }
+          return;
+        }
+
+        currentPlayer = currentPlayer === "X" ? "O" : "X";
+        statusEl.textContent = "Player " + currentPlayer + "'s turn";
+        render();
+      }
+
+      function reset() {
+        board = Array(9).fill("");
+        currentPlayer = "X";
+        gameOver = false;
+        statusEl.textContent = "Player X's turn";
+        render();
+      }
+
+      restartBtn.addEventListener("click", reset);
+      render();
+    </script>
+    <script src="../shared.js"></script>
+  </body>
+</html>

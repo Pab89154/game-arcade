@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Would You Rather — Game Arcade</title>
+    <link rel="stylesheet" href="../shared.css" />
+    <style>
+      .question-label {
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: var(--purple);
+        text-align: center;
+      }
+
+      .progress {
+        font-size: 0.9rem;
+        font-weight: 600;
+        color: var(--text-muted);
+      }
+
+      .options {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+        width: 100%;
+      }
+
+      @media (max-width: 540px) {
+        .options {
+          grid-template-columns: 1fr;
+        }
+      }
+
+      .option-btn {
+        background: var(--surface-hover);
+        border: 3px solid var(--ocean);
+        border-radius: var(--radius);
+        padding: 1.25rem 1rem;
+        min-height: 140px;
+        font-family: inherit;
+        font-size: 1.05rem;
+        font-weight: 700;
+        color: var(--text);
+        cursor: pointer;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 0.75rem;
+        text-align: center;
+        line-height: 1.35;
+        transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+        box-shadow: 0 4px 12px rgba(0, 217, 255, 0.15);
+      }
+
+      .option-btn:hover:not(:disabled) {
+        transform: translateY(-3px) scale(1.02);
+        box-shadow: 0 8px 20px rgba(0, 217, 255, 0.3);
+      }
+
+      .option-btn:active:not(:disabled) {
+        transform: scale(0.98);
+      }
+
+      .option-btn:disabled {
+        cursor: default;
+      }
+
+      .option-btn .emoji {
+        font-size: 2.5rem;
+        line-height: 1;
+      }
+
+      .option-btn.option-a {
+        border-color: var(--berry);
+      }
+
+      .option-btn.option-a:hover:not(:disabled) {
+        background: rgba(255, 45, 170, 0.12);
+        box-shadow: 0 8px 20px rgba(255, 45, 170, 0.25);
+      }
+
+      .option-btn.option-b {
+        border-color: var(--jungle);
+      }
+
+      .option-btn.option-b:hover:not(:disabled) {
+        background: rgba(57, 255, 20, 0.1);
+        box-shadow: 0 8px 20px rgba(57, 255, 20, 0.2);
+      }
+
+      .option-btn.chosen {
+        border-width: 4px;
+        transform: scale(1.03);
+      }
+
+      .option-btn.option-a.chosen {
+        border-color: var(--neon-pink);
+        background: rgba(255, 45, 170, 0.18);
+      }
+
+      .option-btn.option-b.chosen {
+        border-color: var(--neon-green);
+        background: rgba(57, 255, 20, 0.12);
+      }
+
+      .option-btn.not-chosen {
+        opacity: 0.55;
+      }
+
+      .reaction-panel {
+        width: 100%;
+        text-align: center;
+        display: none;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.75rem;
+        animation: popIn 0.35s ease;
+      }
+
+      .reaction-panel.visible {
+        display: flex;
+      }
+
+      @keyframes popIn {
+        from {
+          opacity: 0;
+          transform: translateY(8px);
+        }
+        to {
+          opacity: 1;
+          transform: translateY(0);
+        }
+      }
+
+      .reaction-text {
+        font-size: 1.2rem;
+        font-weight: 700;
+        color: var(--neon-green);
+      }
+
+      .tally-bar {
+        display: flex;
+        width: 100%;
+        max-width: 360px;
+        height: 2rem;
+        border-radius: 999px;
+        overflow: hidden;
+        border: 2px solid var(--ocean);
+        background: var(--surface-hover);
+      }
+
+      .tally-a,
+      .tally-b {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.85rem;
+        font-weight: 700;
+        color: white;
+        transition: width 0.5s ease;
+        min-width: 2.5rem;
+      }
+
+      .tally-a {
+        background: linear-gradient(135deg, var(--neon-pink), var(--neon-purple));
+      }
+
+      .tally-b {
+        background: linear-gradient(135deg, var(--neon-green), var(--neon-blue));
+      }
+
+      .tally-labels {
+        display: flex;
+        justify-content: space-between;
+        width: 100%;
+        max-width: 360px;
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--text-muted);
+      }
+
+      .next-wrap {
+        display: none;
+      }
+
+      .next-wrap.visible {
+        display: block;
+      }
+
+      .vs-badge {
+        display: none;
+      }
+
+      @media (min-width: 541px) {
+        .options-wrap {
+          position: relative;
+          width: 100%;
+        }
+
+        .vs-badge {
+          display: flex;
+          position: absolute;
+          left: 50%;
+          top: 50%;
+          transform: translate(-50%, -50%);
+          width: 2.75rem;
+          height: 2.75rem;
+          border-radius: 50%;
+          background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple));
+          color: var(--text);
+          font-weight: 800;
+          font-size: 0.85rem;
+          align-items: center;
+          justify-content: center;
+          z-index: 1;
+          box-shadow: 0 4px 12px rgba(138, 43, 226, 0.45);
+          pointer-events: none;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <main class="main">
+        <a class="back-link" href="../index.html">← Back to Arcade</a>
+
+        <header class="header">
+          <div class="game-card-icon" aria-hidden="true">🤔</div>
+          <h1>Would You Rather</h1>
+          <p class="tagline">Pick the option you'd choose!</p>
+        </header>
+
+        <div class="game-panel">
+          <p class="progress" id="progress">Question 1 of 40</p>
+          <p class="question-label" id="question">Would you rather…</p>
+
+          <div class="options-wrap">
+            <span class="vs-badge" aria-hidden="true">OR</span>
+            <div class="options" id="options">
+              <button class="option-btn option-a" id="option-a" type="button">
+                <span class="emoji" id="emoji-a" aria-hidden="true"></span>
+                <span id="text-a"></span>
+              </button>
+              <button class="option-btn option-b" id="option-b" type="button">
+                <span class="emoji" id="emoji-b" aria-hidden="true"></span>
+                <span id="text-b"></span>
+              </button>
+            </div>
+          </div>
+
+          <div class="reaction-panel" id="reaction">
+            <p class="reaction-text" id="reaction-text"></p>
+            <div class="tally-bar" role="img" aria-label="Fun poll results">
+              <div class="tally-a" id="tally-a">50%</div>
+              <div class="tally-b" id="tally-b">50%</div>
+            </div>
+            <div class="tally-labels">
+              <span id="label-a"></span>
+              <span id="label-b"></span>
+            </div>
+          </div>
+
+          <div class="next-wrap" id="next-wrap">
+            <button class="btn" id="next-btn" type="button">Next question</button>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      const QUESTIONS = [
+        { a: "🦸", textA: "Have super strength", b: "🚀", textB: "Be able to fly" },
+        { a: "🐶", textA: "Talk to animals", b: "🌿", textB: "Make plants grow instantly" },
+        { a: "🍕", textA: "Eat pizza for every meal", b: "🍦", textB: "Eat ice cream for every meal" },
+        { a: "🎮", textA: "Be amazing at every video game", b: "⚽", textB: "Be amazing at every sport" },
+        { a: "🌙", textA: "Stay up all night every night", b: "☀️", textB: "Wake up at 5 AM feeling great" },
+        { a: "🎨", textA: "Paint pictures that come to life", b: "📚", textB: "Read any book in one minute" },
+        { a: "🏰", textA: "Live in a castle", b: "🌴", textB: "Live in a treehouse" },
+        { a: "🐉", textA: "Have a pet dragon", b: "🦄", textB: "Have a pet unicorn" },
+        { a: "🎂", textA: "Have your birthday every month", b: "🎄", textB: "Have Christmas every month" },
+        { a: "🌊", textA: "Breathe underwater", b: "🏔️", textB: "Never feel tired when hiking" },
+        { a: "🎤", textA: "Sing like a pop star", b: "💃", textB: "Dance like a pro" },
+        { a: "🍿", textA: "Watch movies all day", b: "📖", textB: "Read books all day" },
+        { a: "🚲", textA: "Ride the fastest bike ever", b: "🛹", textB: "Do the coolest skateboard tricks" },
+        { a: "🧁", textA: "Bake unlimited cupcakes", b: "🍪", textB: "Bake unlimited cookies" },
+        { a: "🎪", textA: "Join the circus", b: "🎬", textB: "Star in your own movie" },
+        { a: "🌈", textA: "Make rainbows appear on command", b: "❄️", textB: "Make it snow whenever you want" },
+        { a: "🐱", textA: "Be best friends with a talking cat", b: "🐬", textB: "Be best friends with a friendly dolphin" },
+        { a: "🎁", textA: "Get a surprise gift every week", b: "🎉", textB: "Throw a party every week" },
+        { a: "🧩", textA: "Solve any puzzle in seconds", b: "🔬", textB: "Invent cool gadgets" },
+        { a: "🏖️", textA: "Vacation at the beach all summer", b: "⛷️", textB: "Vacation in the mountains all summer" },
+        { a: "🍔", textA: "Have a burger shop in your room", b: "🍩", textB: "Have a donut shop in your room" },
+        { a: "🎸", textA: "Play every instrument perfectly", b: "🎹", textB: "Compose hit songs instantly" },
+        { a: "🦖", textA: "Meet a friendly dinosaur", b: "👽", textB: "Meet a friendly alien" },
+        { a: "🛝", textA: "Have the world's biggest slide in your yard", b: "🏊", textB: "Have a swimming pool in your bedroom" },
+        { a: "🧙", textA: "Cast small magic spells", b: "🗺️", textB: "Find hidden treasure maps" },
+        { a: "🍉", textA: "Only eat fruit for a week", b: "🥞", textB: "Only eat breakfast food for a week" },
+        { a: "🎠", textA: "Ride a carousel horse that goes anywhere", b: "🚂", textB: "Ride a toy train that goes anywhere" },
+        { a: "🌟", textA: "Wish on a shooting star every night", b: "🍀", textB: "Find a lucky four-leaf clover every day" },
+        { a: "🎃", textA: "Celebrate Halloween twice a year", b: "🐰", textB: "Celebrate Easter twice a year" },
+        { a: "🛸", textA: "Take a trip to the moon", b: "🤿", textB: "Explore the deepest ocean" },
+        { a: "🎈", textA: "Float like a balloon for an hour", b: "🏃", textB: "Run as fast as a cheetah for an hour" },
+        { a: "🧸", textA: "Have a teddy bear that tells jokes", b: "🤖", textB: "Have a robot that helps with homework" },
+        { a: "🍜", textA: "Eat noodles with chopsticks like a pro", b: "🌮", textB: "Make the best tacos in the world" },
+        { a: "🎢", textA: "Ride the tallest roller coaster", b: "🎡", textB: "Ride the biggest Ferris wheel" },
+        { a: "🦋", textA: "Turn into a butterfly for a day", b: "🐧", textB: "Turn into a penguin for a day" },
+        { a: "🎒", textA: "Never carry a heavy backpack again", b: "👟", textB: "Never have sore feet again" },
+        { a: "🍫", textA: "Swim in a pool of chocolate", b: "🫧", textB: "Swim in a pool of bubble bath" },
+        { a: "🎯", textA: "Always win at darts", b: "🎳", textB: "Always get strikes in bowling" },
+        { a: "🌻", textA: "Grow a garden that never needs watering", b: "🍓", textB: "Grow strawberries the size of apples" },
+        { a: "🎭", textA: "Wear a cool costume every day", b: "👑", textB: "Wear a crown every day" },
+      ];
+
+      const REACTIONS = [
+        "Nice choice! 🎉",
+        "Bold pick! 💪",
+        "Interesting! 🤩",
+        "Great taste! ⭐",
+        "Love it! 💖",
+        "Solid choice! 👍",
+        "You picked that? Cool! 😎",
+        "Awesome pick! 🌟",
+      ];
+
+      const progressEl = document.getElementById("progress");
+      const questionEl = document.getElementById("question");
+      const optionA = document.getElementById("option-a");
+      const optionB = document.getElementById("option-b");
+      const emojiA = document.getElementById("emoji-a");
+      const emojiB = document.getElementById("emoji-b");
+      const textA = document.getElementById("text-a");
+      const textB = document.getElementById("text-b");
+      const reactionPanel = document.getElementById("reaction");
+      const reactionText = document.getElementById("reaction-text");
+      const tallyA = document.getElementById("tally-a");
+      const tallyB = document.getElementById("tally-b");
+      const labelA = document.getElementById("label-a");
+      const labelB = document.getElementById("label-b");
+      const nextWrap = document.getElementById("next-wrap");
+      const nextBtn = document.getElementById("next-btn");
+
+      let deck = [];
+      let currentIndex = 0;
+      let answered = false;
+      let fakePercentA = 50;
+
+      function shuffle(arr) {
+        const copy = arr.slice();
+        for (let i = copy.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [copy[i], copy[j]] = [copy[j], copy[i]];
+        }
+        return copy;
+      }
+
+      function resetDeck() {
+        deck = shuffle(QUESTIONS.map((_, i) => i));
+        currentIndex = 0;
+      }
+
+      function showQuestion() {
+        answered = false;
+        const q = QUESTIONS[deck[currentIndex]];
+
+        progressEl.textContent =
+          "Question " + (currentIndex + 1) + " of " + QUESTIONS.length;
+        questionEl.textContent = "Would you rather…";
+
+        emojiA.textContent = q.a;
+        emojiB.textContent = q.b;
+        textA.textContent = q.textA;
+        textB.textContent = q.textB;
+
+        optionA.disabled = false;
+        optionB.disabled = false;
+        optionA.classList.remove("chosen", "not-chosen");
+        optionB.classList.remove("chosen", "not-chosen");
+
+        reactionPanel.classList.remove("visible");
+        nextWrap.classList.remove("visible");
+      }
+
+      function pick(choice) {
+        if (answered) return;
+        answered = true;
+
+        optionA.disabled = true;
+        optionB.disabled = true;
+
+        const chosen = choice === "a" ? optionA : optionB;
+        const other = choice === "a" ? optionB : optionA;
+        chosen.classList.add("chosen");
+        other.classList.add("not-chosen");
+
+        fakePercentA = 25 + Math.floor(Math.random() * 51);
+        const fakePercentB = 100 - fakePercentA;
+
+        reactionText.textContent =
+          REACTIONS[Math.floor(Math.random() * REACTIONS.length)];
+
+        tallyA.style.width = fakePercentA + "%";
+        tallyB.style.width = fakePercentB + "%";
+        tallyA.textContent = fakePercentA + "%";
+        tallyB.textContent = fakePercentB + "%";
+
+        labelA.textContent = textA.textContent;
+        labelB.textContent = textB.textContent;
+
+        reactionPanel.classList.add("visible");
+        nextWrap.classList.add("visible");
+      }
+
+      function nextQuestion() {
+        currentIndex++;
+        if (currentIndex >= deck.length) {
+          resetDeck();
+        }
+        showQuestion();
+      }
+
+      optionA.addEventListener("click", () => pick("a"));
+      optionB.addEventListener("click", () => pick("b"));
+      nextBtn.addEventListener("click", nextQuestion);
+
+      resetDeck();
+      showQuestion();
+    </script>
+    <script src="../shared.js"></script>
+  </body>
+</html>

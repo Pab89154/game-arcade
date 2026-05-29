@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Memory Match — Game Arcade</title>
+    <link rel="stylesheet" href="../shared.css" />
+    <style>
+      .board {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr);
+        gap: 0.6rem;
+        width: min(100%, 360px);
+      }
+
+      .card {
+        aspect-ratio: 1;
+        perspective: 600px;
+        cursor: pointer;
+        border: none;
+        background: none;
+        padding: 0;
+      }
+
+      .card:disabled {
+        cursor: default;
+      }
+
+      .card-inner {
+        width: 100%;
+        height: 100%;
+        position: relative;
+        transform-style: preserve-3d;
+        transition: transform 0.4s ease;
+      }
+
+      .card.flipped .card-inner,
+      .card.matched .card-inner {
+        transform: rotateY(180deg);
+      }
+
+      .card-face {
+        position: absolute;
+        inset: 0;
+        backface-visibility: hidden;
+        border-radius: var(--radius);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        border: 3px solid var(--ocean);
+      }
+
+      .card-back {
+        background: linear-gradient(135deg, var(--neon-purple), var(--neon-blue));
+        color: var(--text);
+        font-size: 1.5rem;
+      }
+
+      .card-front {
+        background: var(--surface);
+        transform: rotateY(180deg);
+      }
+
+      .card.matched .card-front {
+        border-color: var(--neon-green);
+        background: rgba(57, 255, 20, 0.12);
+      }
+
+      .card:not(.matched):not(:disabled):hover .card-back {
+        filter: brightness(1.1);
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <main class="main">
+        <a class="back-link" href="../index.html">← Back to Arcade</a>
+
+        <header class="header">
+          <div class="game-card-icon" aria-hidden="true">🃏</div>
+          <h1>Memory Match</h1>
+        </header>
+
+        <div class="game-panel">
+          <div class="score-bar">
+            <div>Moves: <span id="moves">0</span></div>
+            <div>Time: <span id="time">0</span>s</div>
+          </div>
+          <p class="status" id="status">Find all the pairs!</p>
+          <div class="board" id="board"></div>
+          <button class="btn btn-secondary" id="restart" type="button">Play again</button>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      const EMOJIS = ["🐶", "🐱", "🦄", "🚀", "🍕", "🌈", "⚽", "🎸"];
+      const boardEl = document.getElementById("board");
+      const movesEl = document.getElementById("moves");
+      const timeEl = document.getElementById("time");
+      const statusEl = document.getElementById("status");
+      const restartBtn = document.getElementById("restart");
+
+      let cards = [];
+      let flipped = [];
+      let matchedCount = 0;
+      let moves = 0;
+      let lock = false;
+      let timerId = null;
+      let seconds = 0;
+
+      function shuffle(arr) {
+        const copy = arr.slice();
+        for (let i = copy.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [copy[i], copy[j]] = [copy[j], copy[i]];
+        }
+        return copy;
+      }
+
+      function startTimer() {
+        if (timerId) return;
+        timerId = setInterval(() => {
+          seconds++;
+          timeEl.textContent = seconds;
+        }, 1000);
+      }
+
+      function stopTimer() {
+        if (timerId) {
+          clearInterval(timerId);
+          timerId = null;
+        }
+      }
+
+      function createBoard() {
+        cards = shuffle([...EMOJIS, ...EMOJIS]);
+        matchedCount = 0;
+        moves = 0;
+        flipped = [];
+        lock = false;
+        seconds = 0;
+        stopTimer();
+        movesEl.textContent = "0";
+        timeEl.textContent = "0";
+        statusEl.textContent = "Find all the pairs!";
+        boardEl.innerHTML = "";
+
+        cards.forEach((emoji, index) => {
+          const btn = document.createElement("button");
+          btn.className = "card";
+          btn.type = "button";
+          btn.dataset.index = index;
+          btn.innerHTML =
+            '<div class="card-inner">' +
+            '<div class="card-face card-back">?</div>' +
+            '<div class="card-face card-front">' + emoji + "</div>" +
+            "</div>";
+          btn.addEventListener("click", () => flipCard(btn, index));
+          boardEl.appendChild(btn);
+        });
+      }
+
+      function flipCard(btn, index) {
+        if (lock || btn.classList.contains("flipped") || btn.classList.contains("matched")) return;
+
+        startTimer();
+        btn.classList.add("flipped");
+        flipped.push({ btn, index, emoji: cards[index] });
+
+        if (flipped.length === 2) {
+          moves++;
+          movesEl.textContent = moves;
+          lock = true;
+
+          const [first, second] = flipped;
+          if (first.emoji === second.emoji) {
+            first.btn.classList.add("matched");
+            second.btn.classList.add("matched");
+            first.btn.disabled = true;
+            second.btn.disabled = true;
+            matchedCount += 2;
+            flipped = [];
+            lock = false;
+
+            if (matchedCount === cards.length) {
+              stopTimer();
+              statusEl.textContent = "You win in " + moves + " moves! 🎉";
+            }
+          } else {
+            setTimeout(() => {
+              first.btn.classList.remove("flipped");
+              second.btn.classList.remove("flipped");
+              flipped = [];
+              lock = false;
+            }, 800);
+          }
+        }
+      }
+
+      restartBtn.addEventListener("click", createBoard);
+      createBoard();
+    </script>
+    <script src="../shared.js"></script>
+  </body>
+</html>

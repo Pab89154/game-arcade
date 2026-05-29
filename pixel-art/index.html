@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Pixel Art Creator — Game Arcade</title>
+    <link rel="stylesheet" href="../shared.css" />
+    <style>
+      .toolbar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        justify-content: center;
+        width: 100%;
+      }
+
+      .tool-btn {
+        background: var(--surface-hover);
+        border: 2px solid var(--ocean);
+        border-radius: var(--radius);
+        padding: 0.5rem 0.85rem;
+        font-family: inherit;
+        font-size: 0.9rem;
+        font-weight: 600;
+        cursor: pointer;
+        color: var(--text);
+      }
+
+      .tool-btn.active {
+        background: linear-gradient(135deg, var(--ocean), var(--jungle));
+        color: var(--text);
+        border-color: transparent;
+      }
+
+      .palette {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        justify-content: center;
+        max-width: 320px;
+      }
+
+      .color-swatch {
+        width: 36px;
+        height: 36px;
+        border-radius: 8px;
+        border: 3px solid transparent;
+        cursor: pointer;
+        transition: transform 0.1s ease;
+      }
+
+      .color-swatch:hover {
+        transform: scale(1.1);
+      }
+
+      .color-swatch.active {
+        border-color: var(--text);
+        box-shadow: 0 0 0 2px var(--surface), 0 0 0 4px var(--neon-purple);
+      }
+
+      .canvas-wrap {
+        border: 3px solid var(--ocean);
+        border-radius: var(--radius);
+        overflow: hidden;
+        background: #1a1f2e;
+        background-image:
+          linear-gradient(45deg, #252b3d 25%, transparent 25%),
+          linear-gradient(-45deg, #252b3d 25%, transparent 25%),
+          linear-gradient(45deg, transparent 75%, #252b3d 75%),
+          linear-gradient(-45deg, transparent 75%, #252b3d 75%);
+        background-size: 16px 16px;
+        background-position: 0 0, 0 8px, 8px -8px, -8px 0;
+        line-height: 0;
+      }
+
+      canvas {
+        display: block;
+        image-rendering: pixelated;
+        image-rendering: crisp-edges;
+        cursor: crosshair;
+        touch-action: none;
+      }
+
+      .hint {
+        color: var(--text-muted);
+        font-size: 0.9rem;
+        text-align: center;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        justify-content: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <main class="main" style="max-width: 520px">
+        <a class="back-link" href="../index.html">← Back to Arcade</a>
+
+        <header class="header">
+          <div class="game-card-icon" aria-hidden="true">🎨</div>
+          <h1>Pixel Art Creator</h1>
+        </header>
+
+        <div class="game-panel">
+          <div class="toolbar">
+            <button class="tool-btn active" id="paintTool" type="button">🖌️ Paint</button>
+            <button class="tool-btn" id="eraseTool" type="button">🧽 Eraser</button>
+          </div>
+
+          <div class="palette" id="palette" role="listbox" aria-label="Color palette"></div>
+
+          <div class="canvas-wrap">
+            <canvas id="canvas" width="320" height="320" aria-label="16 by 16 pixel art canvas"></canvas>
+          </div>
+
+          <p class="hint">Click or drag to draw. Each square is one pixel.</p>
+
+          <div class="actions">
+            <button class="btn btn-secondary" id="clearBtn" type="button">Clear</button>
+            <button class="btn" id="saveBtn" type="button">Download PNG</button>
+          </div>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      const GRID = 16;
+      const PIXEL = 20;
+      const STORAGE_KEY = "gameArcadePixelArt";
+
+      const COLORS = [
+        "#000000", "#ffffff", "#00D9FF", "#8A2BE2", "#FF2DAA", "#39FF14",
+        "#ff6b6b", "#ffb703", "#06d6a0", "#00bbf9", "#ef476f", "#8338ec",
+        "#8d5524", "#c68642", "#ffe066", "#95e1d3",
+      ];
+
+      const canvas = document.getElementById("canvas");
+      const ctx = canvas.getContext("2d");
+      const paletteEl = document.getElementById("palette");
+      const paintToolBtn = document.getElementById("paintTool");
+      const eraseToolBtn = document.getElementById("eraseTool");
+      const clearBtn = document.getElementById("clearBtn");
+      const saveBtn = document.getElementById("saveBtn");
+
+      let pixels = [];
+      let currentColor = COLORS[2];
+      let erasing = false;
+      let drawing = false;
+
+      function emptyGrid() {
+        return Array.from({ length: GRID }, () => Array(GRID).fill(null));
+      }
+
+      function load() {
+        try {
+          const saved = localStorage.getItem(STORAGE_KEY);
+          if (saved) {
+            const data = JSON.parse(saved);
+            if (Array.isArray(data) && data.length === GRID) return data;
+          }
+        } catch (_) {}
+        return emptyGrid();
+      }
+
+      function save() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(pixels));
+      }
+
+      function drawGrid() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        for (let y = 0; y < GRID; y++) {
+          for (let x = 0; x < GRID; x++) {
+            const color = pixels[y][x];
+            if (color) {
+              ctx.fillStyle = color;
+              ctx.fillRect(x * PIXEL, y * PIXEL, PIXEL, PIXEL);
+            }
+          }
+        }
+        ctx.strokeStyle = "rgba(0,0,0,0.08)";
+        ctx.lineWidth = 1;
+        for (let i = 0; i <= GRID; i++) {
+          ctx.beginPath();
+          ctx.moveTo(i * PIXEL, 0);
+          ctx.lineTo(i * PIXEL, canvas.height);
+          ctx.moveTo(0, i * PIXEL);
+          ctx.lineTo(canvas.width, i * PIXEL);
+          ctx.stroke();
+        }
+      }
+
+      function cellFromEvent(e) {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = canvas.width / rect.width;
+        const scaleY = canvas.height / rect.height;
+        const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+        const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+        const x = Math.floor(((clientX - rect.left) * scaleX) / PIXEL);
+        const y = Math.floor(((clientY - rect.top) * scaleY) / PIXEL);
+        if (x < 0 || x >= GRID || y < 0 || y >= GRID) return null;
+        return { x, y };
+      }
+
+      function paintCell(x, y) {
+        const color = erasing ? null : currentColor;
+        if (pixels[y][x] === color) return;
+        pixels[y][x] = color;
+        drawGrid();
+        save();
+      }
+
+      function handlePointer(e) {
+        if (!drawing) return;
+        e.preventDefault();
+        const cell = cellFromEvent(e);
+        if (cell) paintCell(cell.x, cell.y);
+      }
+
+      function buildPalette() {
+        COLORS.forEach((color) => {
+          const swatch = document.createElement("button");
+          swatch.type = "button";
+          swatch.className = "color-swatch" + (color === currentColor ? " active" : "");
+          swatch.style.background = color;
+          swatch.setAttribute("aria-label", "Color " + color);
+          swatch.addEventListener("click", () => {
+            currentColor = color;
+            erasing = false;
+            paintToolBtn.classList.add("active");
+            eraseToolBtn.classList.remove("active");
+            paletteEl.querySelectorAll(".color-swatch").forEach((s) => {
+              s.classList.toggle("active", s === swatch);
+            });
+          });
+          paletteEl.appendChild(swatch);
+        });
+      }
+
+      paintToolBtn.addEventListener("click", () => {
+        erasing = false;
+        paintToolBtn.classList.add("active");
+        eraseToolBtn.classList.remove("active");
+      });
+
+      eraseToolBtn.addEventListener("click", () => {
+        erasing = true;
+        eraseToolBtn.classList.add("active");
+        paintToolBtn.classList.remove("active");
+      });
+
+      canvas.addEventListener("mousedown", (e) => {
+        drawing = true;
+        handlePointer(e);
+      });
+      canvas.addEventListener("mousemove", handlePointer);
+      window.addEventListener("mouseup", () => { drawing = false; });
+
+      canvas.addEventListener("touchstart", (e) => {
+        drawing = true;
+        handlePointer(e);
+      }, { passive: false });
+      canvas.addEventListener("touchmove", handlePointer, { passive: false });
+      window.addEventListener("touchend", () => { drawing = false; });
+
+      clearBtn.addEventListener("click", () => {
+        if (confirm("Clear the whole canvas?")) {
+          pixels = emptyGrid();
+          save();
+          drawGrid();
+        }
+      });
+
+      saveBtn.addEventListener("click", () => {
+        const exportCanvas = document.createElement("canvas");
+        exportCanvas.width = GRID;
+        exportCanvas.height = GRID;
+        const exportCtx = exportCanvas.getContext("2d");
+        for (let y = 0; y < GRID; y++) {
+          for (let x = 0; x < GRID; x++) {
+            if (pixels[y][x]) {
+              exportCtx.fillStyle = pixels[y][x];
+              exportCtx.fillRect(x, y, 1, 1);
+            }
+          }
+        }
+        const link = document.createElement("a");
+        link.download = "my-pixel-art.png";
+        link.href = exportCanvas.toDataURL("image/png");
+        link.click();
+      });
+
+      pixels = load();
+      buildPalette();
+      drawGrid();
+    </script>
+    <script src="../shared.js"></script>
+  </body>
+</html>

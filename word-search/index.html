@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Word Search — Game Arcade</title>
+    <link rel="stylesheet" href="../shared.css" />
+    <style>
+      .theme-bar { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; }
+      .theme-btn {
+        padding: 0.45rem 0.9rem; border: 2px solid var(--ocean); border-radius: 999px;
+        background: var(--surface); font-weight: 600; cursor: pointer; font-family: inherit;
+        color: var(--text);
+      }
+      .theme-btn.active { background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple)); color: var(--text); border-color: transparent; }
+      .ws-grid {
+        display: grid; grid-template-columns: repeat(12, 1fr); gap: 2px;
+        width: min(100%, 384px); background: var(--panel-dark); border: 2px solid var(--ocean);
+        border-radius: var(--radius); padding: 3px;
+      }
+      .ws-cell {
+        aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+        font-size: clamp(0.65rem, 2.5vw, 0.95rem); font-weight: 700; background: var(--surface);
+        user-select: none; cursor: pointer;
+      }
+      .ws-cell.selected { background: rgba(255, 45, 170, 0.2); color: var(--neon-pink); }
+      .ws-cell.found { background: rgba(57, 255, 20, 0.2); color: var(--neon-green); }
+      .word-list { display: flex; flex-wrap: wrap; gap: 0.5rem; justify-content: center; max-width: 100%; }
+      .word-list span {
+        padding: 0.35rem 0.7rem; background: var(--surface-hover); border-radius: 999px;
+        font-weight: 600; font-size: 0.9rem; border: 2px solid var(--ocean);
+      }
+      .word-list span.found { text-decoration: line-through; opacity: 0.55; border-color: var(--jungle); }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <main class="main" style="max-width: 440px">
+        <a class="back-link" href="../index.html">← Back to Arcade</a>
+        <header class="header">
+          <div class="game-card-icon">🔍</div>
+          <h1>Word Search</h1>
+        </header>
+        <div class="game-panel">
+          <div class="theme-bar" id="themes"></div>
+          <p class="status" id="status">Drag across letters to find words!</p>
+          <div class="ws-grid" id="grid"></div>
+          <div class="word-list" id="wordList"></div>
+          <button class="btn btn-secondary" id="newBtn" type="button">New puzzle</button>
+        </div>
+      </main>
+    </div>
+    <script src="game.js"></script>
+    <script src="../shared.js"></script>
+  </body>
+</html>

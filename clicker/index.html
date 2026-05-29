@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cookie Clicker — Game Arcade</title>
+    <link rel="stylesheet" href="../shared.css" />
+    <style>
+      .clicker-main {
+        max-width: 520px;
+      }
+
+      .cookie-btn {
+        width: 180px;
+        height: 180px;
+        border-radius: 50%;
+        border: 5px solid var(--neon-blue);
+        background: linear-gradient(145deg, #3d2817, #2a1a0e);
+        font-size: 5rem;
+        cursor: pointer;
+        box-shadow: 0 8px 24px rgba(0, 217, 255, 0.25);
+        transition: transform 0.08s ease;
+        line-height: 1;
+      }
+
+      .cookie-btn:hover {
+        transform: scale(1.05);
+      }
+
+      .cookie-btn:active {
+        transform: scale(0.92);
+      }
+
+      .stats {
+        text-align: center;
+      }
+
+      .stats .big {
+        font-size: 2.5rem;
+        font-weight: 700;
+        color: var(--neon-blue);
+      }
+
+      .stats .rate {
+        color: var(--text-muted);
+        font-weight: 600;
+      }
+
+      .store-title {
+        width: 100%;
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: var(--neon-purple);
+        border-bottom: 2px solid var(--neon-blue);
+        padding-bottom: 0.35rem;
+      }
+
+      .upgrades {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        max-height: 420px;
+        overflow-y: auto;
+        padding-right: 0.25rem;
+      }
+
+      .upgrade {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 1rem;
+        background: var(--surface-hover);
+        border: 2px solid var(--ocean);
+        border-radius: var(--radius);
+        padding: 0.85rem 1rem;
+        flex-shrink: 0;
+      }
+
+      .upgrade-info h3 {
+        font-size: 1rem;
+        color: var(--purple);
+      }
+
+      .upgrade-info p {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+      }
+
+      .upgrade-owned {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--jungle);
+      }
+
+      .upgrade .btn {
+        flex-shrink: 0;
+        padding: 0.5rem 1rem;
+        font-size: 0.85rem;
+      }
+
+      .upgrade .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        transform: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <main class="main clicker-main">
+        <a class="back-link" href="../index.html">← Back to Arcade</a>
+
+        <header class="header">
+          <div class="game-card-icon" aria-hidden="true">🍪</div>
+          <h1>Cookie Clicker</h1>
+        </header>
+
+        <div class="game-panel">
+          <div class="stats">
+            <div class="big"><span id="cookies">0</span> 🍪</div>
+            <div class="rate"><span id="cps">0</span> cookies per second</div>
+          </div>
+
+          <button class="cookie-btn" id="cookie" type="button" aria-label="Click the cookie">🍪</button>
+
+          <h2 class="store-title">Buildings</h2>
+          <div class="upgrades" id="upgrades"></div>
+
+          <button class="btn btn-secondary" id="reset" type="button">Reset progress</button>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      const STORAGE_KEY = "gameArcadeCookieClicker";
+
+      const BUILDINGS = [
+        { id: "cursor", name: "Cursor", emoji: "👆", cps: 0.1, baseCost: 15 },
+        { id: "grandma", name: "Grandma", emoji: "👵", cps: 1, baseCost: 100 },
+        { id: "farm", name: "Farm", emoji: "🌾", cps: 8, baseCost: 1100 },
+        { id: "mine", name: "Mine", emoji: "⛏️", cps: 47, baseCost: 12000 },
+        { id: "factory", name: "Factory", emoji: "🏭", cps: 260, baseCost: 130000 },
+        { id: "bank", name: "Bank", emoji: "🏦", cps: 1400, baseCost: 1400000 },
+        { id: "temple", name: "Temple", emoji: "⛩️", cps: 7800, baseCost: 20000000 },
+        { id: "wizard", name: "Wizard Tower", emoji: "🧙", cps: 44000, baseCost: 330000000 },
+        { id: "shipment", name: "Shipment", emoji: "🚀", cps: 260000, baseCost: 5100000000 },
+        { id: "alchemy", name: "Alchemy Lab", emoji: "⚗️", cps: 1600000, baseCost: 75000000000 },
+        { id: "portal", name: "Portal", emoji: "🌀", cps: 10000000, baseCost: 1000000000000 },
+        { id: "timemachine", name: "Time Machine", emoji: "⏰", cps: 65000000, baseCost: 14000000000000 },
+        { id: "antimatter", name: "Antimatter Condenser", emoji: "⚛️", cps: 430000000, baseCost: 170000000000000 },
+        { id: "prism", name: "Prism", emoji: "🔮", cps: 2900000000, baseCost: 2100000000000000 },
+      ];
+
+      const cookiesEl = document.getElementById("cookies");
+      const cpsEl = document.getElementById("cps");
+      const cookieBtn = document.getElementById("cookie");
+      const upgradesEl = document.getElementById("upgrades");
+      const resetBtn = document.getElementById("reset");
+
+      let state = { cookies: 0, owned: {} };
+
+      function emptyOwned() {
+        const owned = {};
+        BUILDINGS.forEach(function (b) { owned[b.id] = 0; });
+        return owned;
+      }
+
+      function migrateOwned(old) {
+        const owned = emptyOwned();
+        if (!old || typeof old !== "object") return owned;
+
+        BUILDINGS.forEach(function (b) {
+          if (old[b.id]) owned[b.id] = Number(old[b.id]) || 0;
+        });
+
+        if (old.auto) owned.cursor += Number(old.auto) || 0;
+        if (old.bakery) owned.farm += Number(old.bakery) || 0;
+
+        return owned;
+      }
+
+      function normalizeState(data) {
+        return {
+          cookies: Number(data.cookies) || 0,
+          owned: migrateOwned(data.owned),
+        };
+      }
+
+      function load() {
+        try {
+          const saved = localStorage.getItem(STORAGE_KEY);
+          if (saved) state = normalizeState(JSON.parse(saved));
+          else state = normalizeState({});
+        } catch (_) {
+          state = normalizeState({});
+        }
+      }
+
+      function save() {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      }
+
+      function getCps() {
+        return BUILDINGS.reduce(function (total, b) {
+          return total + b.cps * (state.owned[b.id] || 0);
+        }, 0);
+      }
+
+      function getCost(building) {
+        const owned = state.owned[building.id] || 0;
+        return Math.floor(building.baseCost * Math.pow(1.15, owned));
+      }
+
+      function formatNum(n) {
+        const num = Number(n) || 0;
+        if (num >= 1e15) return (num / 1e15).toFixed(2) + "Qa";
+        if (num >= 1e12) return (num / 1e12).toFixed(2) + "T";
+        if (num >= 1e9) return (num / 1e9).toFixed(2) + "B";
+        if (num >= 1e6) return (num / 1e6).toFixed(2) + "M";
+        if (num >= 1e4) return (num / 1e3).toFixed(1) + "K";
+        if (num >= 1000) return Math.floor(num).toLocaleString();
+        return Math.floor(num).toString();
+      }
+
+      function formatCps(n) {
+        if (n >= 1000) return formatNum(n);
+        if (n >= 10) return Math.floor(n).toString();
+        if (n >= 1) return n.toFixed(1);
+        return n.toFixed(2);
+      }
+
+      function canAfford(cost) {
+        return Math.floor(state.cookies) >= cost;
+      }
+
+      function renderStats() {
+        cookiesEl.textContent = formatNum(state.cookies);
+        cpsEl.textContent = formatCps(getCps());
+      }
+
+      function updateBuyButtons() {
+        BUILDINGS.forEach(function (building) {
+          const cost = getCost(building);
+          const owned = state.owned[building.id] || 0;
+          const buyBtn = upgradesEl.querySelector('[data-upgrade-id="' + building.id + '"]');
+          const ownedEl = upgradesEl.querySelector('[data-owned-for="' + building.id + '"]');
+          if (ownedEl) ownedEl.textContent = "Owned: " + owned;
+          if (buyBtn) {
+            buyBtn.textContent = "Buy (" + formatNum(cost) + " 🍪)";
+            buyBtn.disabled = !canAfford(cost);
+          }
+        });
+      }
+
+      function renderUpgrades() {
+        upgradesEl.innerHTML = "";
+        BUILDINGS.forEach(function (building) {
+          const cost = getCost(building);
+          const owned = state.owned[building.id] || 0;
+          const row = document.createElement("div");
+          row.className = "upgrade";
+
+          const info = document.createElement("div");
+          info.className = "upgrade-info";
+          info.innerHTML =
+            "<h3>" + building.emoji + " " + building.name + "</h3>" +
+            "<p>+" + formatCps(building.cps) + " cookie/sec each</p>" +
+            '<p class="upgrade-owned" data-owned-for="' + building.id + '">Owned: ' + owned + "</p>";
+
+          const buyBtn = document.createElement("button");
+          buyBtn.className = "btn";
+          buyBtn.type = "button";
+          buyBtn.dataset.upgradeId = building.id;
+          buyBtn.textContent = "Buy (" + formatNum(cost) + " 🍪)";
+          buyBtn.disabled = !canAfford(cost);
+
+          row.appendChild(info);
+          row.appendChild(buyBtn);
+          upgradesEl.appendChild(row);
+        });
+      }
+
+      function render() {
+        renderStats();
+        renderUpgrades();
+      }
+
+      function buy(building) {
+        const cost = getCost(building);
+        if (!canAfford(cost)) return;
+        state.cookies -= cost;
+        state.owned[building.id] = (state.owned[building.id] || 0) + 1;
+        save();
+        renderStats();
+        updateBuyButtons();
+      }
+
+      upgradesEl.addEventListener("click", function (e) {
+        const buyBtn = e.target.closest("[data-upgrade-id]");
+        if (!buyBtn || buyBtn.disabled) return;
+        const building = BUILDINGS.find(function (b) { return b.id === buyBtn.dataset.upgradeId; });
+        if (building) buy(building);
+      });
+
+      cookieBtn.addEventListener("click", function () {
+        state.cookies += 1;
+        save();
+        renderStats();
+        updateBuyButtons();
+      });
+
+      resetBtn.addEventListener("click", function () {
+        if (confirm("Reset all cookies and buildings?")) {
+          state = normalizeState({});
+          save();
+          render();
+        }
+      });
+
+      setInterval(function () {
+        const cps = getCps();
+        if (cps > 0) {
+          state.cookies += cps / 10;
+          save();
+        }
+        renderStats();
+        updateBuyButtons();
+      }, 100);
+
+      load();
+      render();
+    </script>
+    <script src="../shared.js"></script>
+  </body>
+</html>
