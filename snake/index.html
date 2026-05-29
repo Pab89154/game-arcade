@@ -96,18 +96,37 @@
         grid: "rgba(255,255,255,0.06)",
       };
 
-      function randCell() {
-        return {
-          x: Math.floor(Math.random() * GRID),
-          y: Math.floor(Math.random() * GRID),
-        };
+      function borderDistance(x, y) {
+        return Math.min(x, GRID - 1 - x, y, GRID - 1 - y);
+      }
+
+      function isNearBorder(x, y) {
+        return borderDistance(x, y) === 1;
+      }
+
+      function isMiddle(x, y) {
+        return borderDistance(x, y) >= 2;
+      }
+
+      function randFoodCell() {
+        const pickMiddle = Math.random() < 0.5;
+        let spot;
+        do {
+          spot = {
+            x: Math.floor(Math.random() * GRID),
+            y: Math.floor(Math.random() * GRID),
+          };
+        } while (pickMiddle ? !isMiddle(spot.x, spot.y) : !isNearBorder(spot.x, spot.y));
+        return spot;
       }
 
       function spawnFood() {
         let spot;
+        let tries = 0;
         do {
-          spot = randCell();
-        } while (snake.some((s) => s.x === spot.x && s.y === spot.y));
+          spot = randFoodCell();
+          tries++;
+        } while (snake.some((s) => s.x === spot.x && s.y === spot.y) && tries < 200);
         food = spot;
       }
 
@@ -184,14 +203,18 @@
         startBtn.textContent = "Restart";
       }
 
-      function startGame() {
+      function startGame(dx, dy) {
         if (running) return;
         reset();
+        if (dx !== undefined && dy !== undefined) {
+          direction = { x: dx, y: dy };
+          nextDirection = { x: dx, y: dy };
+        }
         running = true;
         statusEl.textContent = "Go!";
         startBtn.textContent = "Restart";
         draw();
-        loopId = setInterval(tick, 120);
+        loopId = setInterval(tick, 180);
       }
 
       function setDirection(x, y) {
@@ -200,22 +223,27 @@
         nextDirection = { x, y };
       }
 
+      function handleTurn(x, y) {
+        if (!running) startGame(x, y);
+        else setDirection(x, y);
+      }
+
       document.addEventListener("keydown", (e) => {
         const key = e.key;
-        if (key === "ArrowUp") { e.preventDefault(); setDirection(0, -1); }
-        else if (key === "ArrowDown") { e.preventDefault(); setDirection(0, 1); }
-        else if (key === "ArrowLeft") { e.preventDefault(); setDirection(-1, 0); }
-        else if (key === "ArrowRight") { e.preventDefault(); setDirection(1, 0); }
+        if (key === "ArrowUp") { e.preventDefault(); handleTurn(0, -1); }
+        else if (key === "ArrowDown") { e.preventDefault(); handleTurn(0, 1); }
+        else if (key === "ArrowLeft") { e.preventDefault(); handleTurn(-1, 0); }
+        else if (key === "ArrowRight") { e.preventDefault(); handleTurn(1, 0); }
         else if (key === " " && !running) startGame();
       });
 
       document.querySelectorAll(".controls button").forEach((btn) => {
         btn.addEventListener("click", () => {
           const dir = btn.dataset.dir;
-          if (dir === "up") setDirection(0, -1);
-          else if (dir === "down") setDirection(0, 1);
-          else if (dir === "left") setDirection(-1, 0);
-          else if (dir === "right") setDirection(1, 0);
+          if (dir === "up") handleTurn(0, -1);
+          else if (dir === "down") handleTurn(0, 1);
+          else if (dir === "left") handleTurn(-1, 0);
+          else if (dir === "right") handleTurn(1, 0);
         });
       });
 

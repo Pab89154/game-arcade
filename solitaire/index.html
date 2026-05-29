@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Solitaire — Game Arcade</title>
+    <link rel="stylesheet" href="../shared.css" />
+    <style>
+      .main { max-width: 680px; }
+      .top-row { display: flex; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.75rem; }
+      .pile-group { display: flex; gap: 0.35rem; }
+      .tableau { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.3rem; min-height: 200px; }
+      .slot {
+        min-height: 70px; border: 2px dashed rgba(0,217,255,0.3); border-radius: 8px;
+        position: relative; cursor: pointer;
+      }
+      .slot.foundation { border-color: rgba(57,255,20,0.35); }
+      .slot.highlight { box-shadow: 0 0 0 2px var(--neon-pink); }
+      .card {
+        width: 100%; max-width: 48px; aspect-ratio: 5/7; border-radius: 6px;
+        border: 2px solid var(--neon-blue); background: var(--surface);
+        font-size: 0.6rem; font-weight: 700; display: flex; flex-direction: column;
+        align-items: center; justify-content: center; position: absolute; left: 0;
+      }
+      .card.red { color: var(--neon-pink); }
+      .card.down {
+        background: linear-gradient(135deg, var(--neon-purple), var(--neon-blue));
+        color: transparent; border-color: var(--neon-purple);
+      }
+      .card.down::after { content: "🂠"; color: rgba(255,255,255,0.45); font-size: 0.9rem; }
+      .col-slot { min-height: 140px; }
+      .hint { font-size: 0.85rem; color: var(--text-muted); text-align: center; }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <main class="main">
+        <a class="back-link" href="../index.html">← Back to Arcade</a>
+        <header class="header"><div class="game-card-icon">🃏</div><h1>Solitaire</h1></header>
+        <div class="game-panel">
+          <p class="status" id="status">Tap a card, then tap where to move it.</p>
+          <div id="game"></div>
+          <p class="hint">Build four stacks from Ace to King by suit. Red on black, descending.</p>
+          <button class="btn btn-secondary" type="button" id="newBtn">New game</button>
+        </div>
+      </main>
+    </div>
+    <script>
+      var SUITS = ["♠","♥","♦","♣"], RANKS = ["A","2","3","4","5","6","7","8","9","10","J","Q","K"];
+      var isRed = { 1:1, 2:1 };
+      var stock = [], waste = [], foundation = [[],[],[],[]], tableau = [[],[],[],[],[],[],[]];
+      var pick = null;
+
+      function card(s,r,up){ return {s:s,r:r,up:!!up}; }
+      function label(c){ return RANKS[c.r-1]+SUITS[c.s]; }
+      function color(c){ return isRed[c.s] ? "red" : ""; }
+
+      function shuffle(a){
+        for(var i=a.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=a[i]; a[i]=a[j]; a[j]=t; }
+        return a;
+      }
+
+      function deal(){
+        var d = shuffle([]);
+        for(var s=0;s<4;s++) for(var r=1;r<=13;r++) d.push(card(s,r,false));
+        shuffle(d);
+        tableau = [[],[],[],[],[],[],[]];
+        for(var c=0;c<7;c++){
+          for(var r=0;r<=c;r++){
+            var cd = d.pop();
+            cd.up = (r === c);
+            tableau[c].push(cd);
+          }
+        }
+        stock = d; waste = []; foundation = [[],[],[],[]]; pick = null;
+      }
+
+      function canTab(cards, col){
+        if(!cards.length) return false;
+        var t = cards[0], pile = tableau[col];
+        if(!pile.length) return t.r === 13;
+        var top = pile[pile.length-1];
+        return top.r === t.r+1 && !!isRed[top.s] !== !!isRed[t.s];
+      }
+
+      function canFound(c, fi){
+        var pile = foundation[fi];
+        if(!pile.length) return c.r === 1;
+        var top = pile[pile.length-1];
+        return c.s === top.s && c.r === top.r+1;
+      }
+
+      function win(){ return foundation.every(function(f){ return f.length===13; }); }
+
+      function flipCol(c){
+        var pile = tableau[c];
+        if(pile.length && !pile[pile.length-1].up) pile[pile.length-1].up = true;
+      }
+
+      function moveTo(dest){
+        if(!pick) return;
+        var cards = pick.cards, ok = false;
+        if(dest.k==="f"){
+          if(cards.length===1 && canFound(cards[0], dest.i)) { foundation[dest.i].push(cards[0]); ok=true; }
+        } else if(dest.k==="t"){
+          if(canTab(cards, dest.i)) { cards.forEach(function(c){ tableau[dest.i].push(c); }); ok=true; }
+        }
+        if(!ok) return;
+        if(pick.from.k==="w") waste.pop();
+        else if(pick.from.k==="t") tableau[pick.from.i].splice(pick.from.i2, cards.length);
+        else if(pick.from.k==="f") foundation[pick.from.i].pop();
+        if(pick.from.k==="t") flipCol(pick.from.i);
+        pick = null;
+        document.getElementById("status").textContent = win() ? "You win! 🎉" : "Tap a card, then tap where to move it.";
+        render();
+      }
+
+      function elCard(c, sel){
+        var e = document.createElement("div");
+        e.className = "card "+color(c)+(c.up?"":" down")+(sel?" highlight":"");
+        if(c.up) e.textContent = label(c);
+        return e;
+      }
+
+      function render(){
+        var root = document.getElementById("game");
+        root.innerHTML = "";
+        var top = document.createElement("div"); top.className = "top-row";
+
+        var left = document.createElement("div"); left.className = "pile-group";
+        var st = document.createElement("div"); st.className = "slot";
+        st.innerHTML = '<div class="card down"></div>';
+        st.onclick = function(){
+          if(stock.length) waste.push(stock.pop());
+          else if(waste.length){ stock = waste.reverse(); waste=[]; }
+          pick=null; render();
+        };
+        left.appendChild(st);
+        var we = document.createElement("div"); we.className = "slot";
+        if(waste.length){
+          var w = waste[waste.length-1];
+          var wc = elCard(w, pick&&pick.from.k==="w");
+          we.appendChild(wc);
+          we.onclick = function(){
+            if(pick){ moveTo({k:"f",i:w.s}); return; }
+            pick = { cards:[w], from:{k:"w"} }; render();
+          };
+        }
+        left.appendChild(we);
+        top.appendChild(left);
+
+        var right = document.createElement("div"); right.className = "pile-group";
+        foundation.forEach(function(pile,fi){
+          var s = document.createElement("div"); s.className = "slot foundation";
+          if(pile.length) s.appendChild(elCard(pile[pile.length-1],false));
+          s.onclick = function(){ if(pick) moveTo({k:"f",i:fi}); };
+          right.appendChild(s);
+        });
+        top.appendChild(right);
+        root.appendChild(top);
+
+        var tab = document.createElement("div"); tab.className = "tableau";
+        tableau.forEach(function(pile,ci){
+          var col = document.createElement("div"); col.className = "slot col-slot";
+          pile.forEach(function(c,idx){
+            var ce = elCard(c, pick&&pick.from.k==="t"&&pick.from.i===ci&&idx>=pick.from.i2);
+            ce.style.top = (idx*16)+"px"; ce.style.zIndex = idx;
+            if(c.up){
+              ce.onclick = (function(ii){ return function(ev){
+                ev.stopPropagation();
+                if(pick){ moveTo({k:"t",i:ci}); return; }
+                var start = ii;
+                for(var j=ii;j<pile.length;j++) if(!pile[j].up) return;
+                pick = { cards: pile.slice(ii), from:{k:"t",i:ci,i2:ii} }; render();
+              };})(idx);
+            }
+            col.appendChild(ce);
+          });
+          col.onclick = function(){ if(pick) moveTo({k:"t",i:ci}); };
+          tab.appendChild(col);
+        });
+        root.appendChild(tab);
+      }
+
+      document.getElementById("newBtn").onclick = function(){ deal(); document.getElementById("status").textContent="Tap a card, then tap where to move it."; render(); };
+      deal(); render();
+    </script>
+    <script src="../shared.js"></script>
+  </body>
+</html>

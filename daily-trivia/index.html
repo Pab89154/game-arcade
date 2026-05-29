@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Daily Trivia — Game Arcade</title>
+    <link rel="stylesheet" href="../shared.css" />
+    <style>
+      .main { max-width: 480px; }
+      .date-label { text-align: center; color: var(--neon-blue); font-weight: 600; }
+      .question-box {
+        background: var(--surface-hover); border: 2px solid var(--neon-purple);
+        border-radius: var(--radius); padding: 1.25rem; text-align: center;
+        font-size: 1.1rem; font-weight: 600; line-height: 1.45;
+      }
+      .answers { display: flex; flex-direction: column; gap: 0.6rem; width: 100%; }
+      .answer-btn {
+        background: var(--surface-hover); border: 2px solid var(--ocean);
+        border-radius: var(--radius); padding: 0.85rem 1rem; font-family: inherit;
+        font-size: 1rem; font-weight: 600; color: var(--text); cursor: pointer; text-align: left;
+      }
+      .answer-btn:hover:not(:disabled) { border-color: var(--neon-blue); }
+      .answer-btn.correct { border-color: var(--neon-green); background: rgba(57,255,20,0.12); }
+      .answer-btn.wrong { border-color: var(--neon-pink); background: rgba(255,45,170,0.12); }
+      .answer-btn:disabled { cursor: default; }
+      .streak { text-align: center; color: var(--text-muted); font-weight: 600; }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <main class="main">
+        <a class="back-link" href="../index.html">← Back to Arcade</a>
+        <header class="header"><div class="game-card-icon">❓</div><h1>Daily Trivia</h1></header>
+        <div class="game-panel">
+          <p class="date-label" id="dateLabel"></p>
+          <p class="streak" id="streak"></p>
+          <div class="question-box" id="question"></div>
+          <div class="answers" id="answers"></div>
+          <p class="status" id="status"></p>
+        </div>
+      </main>
+    </div>
+    <script>
+      var QUESTIONS = [
+        { q: "How many planets are in our solar system?", a: ["7","8","9","10"], c: 1 },
+        { q: "What do bees make?", a: ["Milk","Honey","Juice","Butter"], c: 1 },
+        { q: "Which animal is the largest?", a: ["Elephant","Blue whale","Giraffe","Hippo"], c: 1 },
+        { q: "How many legs does a spider have?", a: ["6","8","10","12"], c: 1 },
+        { q: "What color do you get mixing blue and yellow?", a: ["Purple","Green","Orange","Pink"], c: 1 },
+        { q: "What is the capital of France?", a: ["London","Paris","Rome","Berlin"], c: 1 },
+        { q: "Which season comes after winter?", a: ["Fall","Summer","Spring","Autumn"], c: 2 },
+        { q: "How many minutes are in one hour?", a: ["30","45","60","100"], c: 2 },
+        { q: "What do plants need from the sun?", a: ["Water","Light","Wind","Snow"], c: 1 },
+        { q: "Which is a fruit?", a: ["Carrot","Apple","Potato","Broccoli"], c: 1 },
+        { q: "What gas do we breathe in?", a: ["Carbon dioxide","Oxygen","Helium","Smoke"], c: 1 },
+        { q: "How many sides does a triangle have?", a: ["2","3","4","5"], c: 1 },
+        { q: "Which planet is known as the Red Planet?", a: ["Venus","Mars","Jupiter","Saturn"], c: 1 },
+        { q: "What is H2O?", a: ["Gold","Water","Air","Salt"], c: 1 },
+        { q: "Which bird cannot fly?", a: ["Eagle","Penguin","Sparrow","Hawk"], c: 1 },
+        { q: "How many days are in a week?", a: ["5","6","7","8"], c: 2 },
+        { q: "What instrument has black and white keys?", a: ["Guitar","Piano","Drums","Flute"], c: 1 },
+        { q: "Which ocean is the biggest?", a: ["Atlantic","Pacific","Indian","Arctic"], c: 1 },
+        { q: "What do caterpillars turn into?", a: ["Bees","Butterflies","Birds","Fish"], c: 1 },
+        { q: "How many cents are in one dollar?", a: ["10","50","100","1000"], c: 2 },
+        { q: "Which sport uses a hoop?", a: ["Soccer","Basketball","Tennis","Golf"], c: 1 },
+        { q: "What is the closest star to Earth?", a: ["The Moon","The Sun","Mars","Polaris"], c: 1 },
+        { q: "Which animal says moo?", a: ["Dog","Cow","Cat","Duck"], c: 1 },
+        { q: "How many wheels does a bicycle have?", a: ["1","2","3","4"], c: 1 },
+        { q: "What shape is a stop sign?", a: ["Circle","Octagon","Square","Star"], c: 1 },
+        { q: "Which month has Halloween?", a: ["September","October","November","December"], c: 1 },
+        { q: "What do you use to write on paper?", a: ["Fork","Pencil","Shoe","Cup"], c: 1 },
+        { q: "Which is the fastest land animal?", a: ["Turtle","Cheetah","Snail","Panda"], c: 1 },
+        { q: "How many continents are there?", a: ["5","6","7","8"], c: 2 },
+        { q: "What frozen treat comes on a stick?", a: ["Soup","Popsicle","Pizza","Bread"], c: 1 },
+        { q: "Which planet has rings?", a: ["Mercury","Saturn","Earth","Mars"], c: 1 },
+      ];
+
+      var STORAGE = "gameArcadeDailyTrivia";
+
+      function todayKey(){
+        var d = new Date();
+        return d.getFullYear()+"-"+(d.getMonth()+1)+"-"+d.getDate();
+      }
+
+      function dayIndex(){
+        var p = todayKey().split("-");
+        var n = parseInt(p[0],10)*372 + parseInt(p[1],10)*31 + parseInt(p[2],10);
+        return n % QUESTIONS.length;
+      }
+
+      function loadState(){
+        try { return JSON.parse(localStorage.getItem(STORAGE)) || {}; } catch(e){ return {}; }
+      }
+
+      function saveState(s){ localStorage.setItem(STORAGE, JSON.stringify(s)); }
+
+      function render(){
+        var q = QUESTIONS[dayIndex()];
+        var state = loadState();
+        var key = todayKey();
+        var done = state[key];
+
+        document.getElementById("dateLabel").textContent = "Today's question · " + new Date().toLocaleDateString(undefined, { weekday:"long", month:"long", day:"numeric" });
+        document.getElementById("streak").textContent = "🔥 Streak: " + (state.streak || 0) + " days";
+        document.getElementById("question").textContent = q.q;
+
+        var box = document.getElementById("answers");
+        box.innerHTML = "";
+        document.getElementById("status").textContent = "";
+
+        q.a.forEach(function(text, i){
+          var btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "answer-btn";
+          btn.textContent = text;
+          if(done){
+            btn.disabled = true;
+            if(i === q.c) btn.classList.add("correct");
+            if(done.pick === i && i !== q.c) btn.classList.add("wrong");
+          } else {
+            btn.onclick = function(){
+              var correct = i === q.c;
+              state[key] = { pick: i, correct: correct };
+              if(correct){
+                var yesterday = new Date(); yesterday.setDate(yesterday.getDate()-1);
+                var yKey = yesterday.getFullYear()+"-"+(yesterday.getMonth()+1)+"-"+yesterday.getDate();
+                state.streak = (state[yKey] && state[yKey].correct) ? (state.streak||0)+1 : 1;
+                document.getElementById("status").textContent = "Correct! 🎉 Come back tomorrow!";
+              } else {
+                state.streak = 0;
+                document.getElementById("status").textContent = "Not quite! Answer: " + q.a[q.c];
+              }
+              saveState(state);
+              render();
+            };
+          }
+          box.appendChild(btn);
+        });
+
+        if(done) document.getElementById("status").textContent = done.correct ? "You already answered today! ✅" : "Already played today. Try again tomorrow!";
+      }
+
+      render();
+    </script>
+    <script src="../shared.js"></script>
+  </body>
+</html>

@@ -1,0 +1,526 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Creative Kitchen — Game Arcade</title>
+    <link rel="stylesheet" href="../shared.css" />
+    <style>
+      .main { max-width: 620px; }
+      .stats-row {
+        display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;
+        font-weight: 600; color: var(--text-muted); font-size: 0.9rem;
+      }
+      .stats-row span { color: var(--neon-blue); }
+      .mode-bar { display: flex; gap: 0.5rem; width: 100%; justify-content: center; flex-wrap: wrap; }
+      .mode-btn {
+        background: var(--surface-hover); border: 2px solid var(--ocean);
+        border-radius: 999px; padding: 0.5rem 1rem; font-family: inherit;
+        font-size: 0.85rem; font-weight: 700; color: var(--text-muted); cursor: pointer;
+      }
+      .mode-btn.active {
+        background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple));
+        color: var(--text); border-color: transparent;
+      }
+      .recipe-card, .creative-banner {
+        width: 100%; border-radius: var(--radius); padding: 1rem; text-align: center;
+      }
+      .recipe-card {
+        background: var(--surface-hover); border: 2px solid var(--neon-purple);
+      }
+      .recipe-card.hidden { display: none; }
+      .creative-banner {
+        background: rgba(57, 255, 20, 0.08); border: 2px solid var(--neon-green); display: none;
+      }
+      .creative-banner.visible { display: block; }
+      .recipe-card h3, .creative-banner h3 { color: var(--neon-blue); margin-bottom: 0.25rem; }
+      .recipe-meta {
+        display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap;
+        font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem;
+      }
+      .tag {
+        background: var(--surface); border: 1px solid var(--ocean);
+        border-radius: 999px; padding: 0.15rem 0.55rem;
+      }
+      .steps {
+        display: flex; gap: 0.35rem; justify-content: center; margin: 0.75rem 0;
+      }
+      .step-dot {
+        padding: 0.25rem 0.6rem; border-radius: 999px; font-size: 0.75rem; font-weight: 700;
+        background: var(--surface); border: 2px solid var(--ocean); color: var(--text-muted);
+      }
+      .step-dot.done { border-color: var(--neon-green); color: var(--neon-green); }
+      .step-dot.active { border-color: var(--neon-pink); color: var(--neon-pink); }
+      .checklist, .recipe-needs {
+        display: flex; gap: 0.4rem; justify-content: center; flex-wrap: wrap;
+      }
+      .need-item {
+        font-size: 1.5rem; padding: 0.25rem 0.4rem; border-radius: 8px;
+        border: 2px solid transparent; opacity: 0.45;
+      }
+      .need-item.got { opacity: 1; border-color: var(--neon-green); background: rgba(57,255,20,0.1); }
+      .kitchen { display: flex; flex-direction: column; gap: 1rem; width: 100%; }
+      .pantry {
+        background: var(--surface-hover); border: 2px solid var(--ocean);
+        border-radius: var(--radius); padding: 1rem;
+      }
+      .cat-tabs {
+        display: flex; gap: 0.35rem; flex-wrap: wrap; justify-content: center; margin-bottom: 0.75rem;
+      }
+      .cat-tab {
+        padding: 0.3rem 0.65rem; border-radius: 999px; border: 2px solid var(--ocean);
+        background: var(--surface); font-size: 0.75rem; font-weight: 700;
+        cursor: pointer; font-family: inherit; color: var(--text-muted);
+      }
+      .cat-tab.active {
+        border-color: var(--neon-blue); color: var(--neon-blue);
+      }
+      .ingredients {
+        display: flex; flex-wrap: wrap; gap: 0.45rem; justify-content: center;
+        max-height: 160px; overflow-y: auto;
+      }
+      .ingredient {
+        width: 54px; min-height: 54px; border: 2px solid var(--ocean); border-radius: var(--radius);
+        background: var(--surface); cursor: pointer; display: flex; flex-direction: column;
+        align-items: center; justify-content: center; padding: 0.2rem;
+      }
+      .ingredient:hover { border-color: var(--neon-pink); transform: scale(1.04); }
+      .ingredient .emo { font-size: 1.4rem; line-height: 1; }
+      .ingredient .lbl { font-size: 0.55rem; color: var(--text-muted); text-align: center; line-height: 1.1; }
+      .workstation {
+        display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;
+      }
+      @media (max-width: 520px) { .workstation { grid-template-columns: 1fr; } }
+      .bowl-area, .cook-area {
+        background: var(--surface-hover); border: 2px solid var(--ocean);
+        border-radius: var(--radius); padding: 1rem;
+      }
+      .bowl-area h4, .cook-area h4 { color: var(--purple); text-align: center; margin-bottom: 0.6rem; font-size: 0.95rem; }
+      .bowl {
+        min-height: 90px; border: 3px dashed var(--neon-blue); border-radius: 50%;
+        display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
+        gap: 0.3rem; padding: 0.75rem; margin-bottom: 0.6rem;
+      }
+      .bowl-item {
+        font-size: 1.5rem; cursor: pointer; padding: 0.1rem;
+        border-radius: 6px; border: 2px solid transparent;
+      }
+      .bowl-item:hover { border-color: var(--neon-pink); }
+      .cook-btns { display: flex; gap: 0.4rem; flex-wrap: wrap; justify-content: center; }
+      .cook-btn {
+        padding: 0.45rem 0.7rem; border-radius: var(--radius); border: 2px solid var(--ocean);
+        background: var(--surface); font-family: inherit; font-size: 0.85rem;
+        font-weight: 700; cursor: pointer; color: var(--text);
+      }
+      .cook-btn.selected { border-color: var(--neon-green); background: rgba(57,255,20,0.12); }
+      .kitchen-actions { display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; margin-top: 0.75rem; }
+      .hint { color: var(--text-muted); font-size: 0.85rem; text-align: center; }
+      .creative-picks { display: flex; gap: 0.4rem; flex-wrap: wrap; justify-content: center; margin-top: 0.5rem; }
+      .creative-picks select {
+        background: var(--surface-hover); border: 2px solid var(--neon-purple);
+        border-radius: var(--radius); color: var(--text); font-family: inherit;
+        padding: 0.4rem 0.6rem; font-size: 0.85rem;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <main class="main">
+        <a class="back-link" href="../index.html">← Back to Arcade</a>
+        <header class="header"><div class="game-card-icon">👨‍🍳</div><h1>Creative Kitchen</h1></header>
+        <div class="game-panel">
+          <div class="stats-row">
+            <div>Dishes: <span id="score">0</span></div>
+            <div>Chef level: <span id="level">1</span></div>
+            <div>⭐ <span id="stars">0</span></div>
+          </div>
+          <div class="mode-bar">
+            <button class="mode-btn active" type="button" id="recipeModeBtn">📋 Recipe mode</button>
+            <button class="mode-btn" type="button" id="creativeModeBtn">✨ Creative mode</button>
+            <button class="mode-btn" type="button" id="shuffleBtn">🎲 Random recipe</button>
+          </div>
+
+          <div class="recipe-card" id="recipeCard">
+            <h3 id="recipeName">Recipe</h3>
+            <div class="recipe-meta" id="recipeMeta"></div>
+            <p class="hint" id="recipeTip"></p>
+            <div class="steps" id="steps"></div>
+            <div class="checklist" id="recipeNeeds"></div>
+          </div>
+
+          <div class="creative-banner" id="creativeBanner">
+            <h3>Chef Leo-style creative kitchen!</h3>
+            <p class="hint">Pick a dish type, grab anything from the pantry, choose how to cook it, and serve your invention.</p>
+            <div class="creative-picks">
+              <select id="dishType">
+                <option value="surprise">🎁 Surprise dish</option>
+                <option value="soup">🍲 Soup</option>
+                <option value="salad">🥗 Salad</option>
+                <option value="sandwich">🥪 Sandwich</option>
+                <option value="dessert">🍰 Dessert</option>
+                <option value="drink">🥤 Drink</option>
+                <option value="pizza">🍕 Pizza</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="kitchen">
+            <div class="pantry">
+              <h4 style="text-align:center;color:var(--purple);margin-bottom:0.5rem">Pantry</h4>
+              <div class="cat-tabs" id="catTabs"></div>
+              <div class="ingredients" id="pantry"></div>
+            </div>
+            <div class="workstation">
+              <div class="bowl-area">
+                <h4>🥣 Mixing bowl <span class="hint">(tap item to remove)</span></h4>
+                <div class="bowl" id="bowl"></div>
+                <button class="btn btn-secondary" type="button" id="clearBtn" style="width:100%">Clear bowl</button>
+              </div>
+              <div class="cook-area">
+                <h4>🔥 How to cook</h4>
+                <div class="cook-btns" id="cookBtns"></div>
+                <p class="hint" id="cookHint" style="margin-top:0.5rem">Pick a cooking style</p>
+              </div>
+            </div>
+          </div>
+
+          <div class="kitchen-actions">
+            <button class="btn" type="button" id="actionBtn">Mix ingredients</button>
+          </div>
+          <p class="status" id="status">Add ingredients, mix, then cook and serve!</p>
+        </div>
+      </main>
+    </div>
+    <script>
+      var INGREDIENTS = [
+        { e: "🌾", n: "Flour", c: "base" }, { e: "🍞", n: "Bread", c: "base" }, { e: "🍚", n: "Rice", c: "base" },
+        { e: "🌮", n: "Tortilla", c: "base" }, { e: "🍝", n: "Pasta", c: "base" }, { e: "🥔", n: "Potato", c: "base" },
+        { e: "🥚", n: "Egg", c: "dairy" }, { e: "🥛", n: "Milk", c: "dairy" }, { e: "🧈", n: "Butter", c: "dairy" },
+        { e: "🧀", n: "Cheese", c: "dairy" }, { e: "🍦", n: "Cream", c: "dairy" }, { e: "🫕", n: "Yogurt", c: "dairy" },
+        { e: "🍗", n: "Chicken", c: "protein" }, { e: "🥩", n: "Beef", c: "protein" }, { e: "🐟", n: "Fish", c: "protein" },
+        { e: "🫘", n: "Beans", c: "protein" }, { e: "🍤", n: "Shrimp", c: "protein" }, { e: "🥓", n: "Bacon", c: "protein" },
+        { e: "🍅", n: "Tomato", c: "veg" }, { e: "🥬", n: "Lettuce", c: "veg" }, { e: "🧅", n: "Onion", c: "veg" },
+        { e: "🥕", n: "Carrot", c: "veg" }, { e: "🌽", n: "Corn", c: "veg" }, { e: "🫑", n: "Pepper", c: "veg" },
+        { e: "🥒", n: "Pickle", c: "veg" }, { e: "🍄", n: "Mushroom", c: "veg" }, { e: "🫒", n: "Olive", c: "veg" },
+        { e: "🍎", n: "Apple", c: "fruit" }, { e: "🍌", n: "Banana", c: "fruit" }, { e: "🍓", n: "Strawberry", c: "fruit" },
+        { e: "🍇", n: "Grapes", c: "fruit" }, { e: "🍊", n: "Orange", c: "fruit" }, { e: "🍑", n: "Peach", c: "fruit" },
+        { e: "🍍", n: "Pineapple", c: "fruit" }, { e: "🥭", n: "Mango", c: "fruit" }, { e: "🍋", n: "Lemon", c: "fruit" },
+        { e: "🍫", n: "Chocolate", c: "sweet" }, { e: "🍯", n: "Honey", c: "sweet" }, { e: "🍬", n: "Candy", c: "sweet" },
+        { e: "🧁", n: "Frosting", c: "sweet" }, { e: "🍪", n: "Cookie", c: "sweet" },
+        { e: "🧂", n: "Salt", c: "spice" }, { e: "🌶️", n: "Chili", c: "spice" }, { e: "🧄", n: "Garlic", c: "spice" },
+        { e: "🍃", n: "Basil", c: "spice" }, { e: "🫚", n: "Ginger", c: "spice" },
+        { e: "🥜", n: "Peanut", c: "top" }, { e: "🌰", n: "Nut", c: "top" }, { e: "🥨", n: "Crunch", c: "top" },
+        { e: "🧊", n: "Ice", c: "top" }, { e: "🫐", n: "Berry", c: "top" }, { e: "⭐", n: "Sprinkles", c: "top" },
+      ];
+
+      var CATEGORIES = [
+        { id: "all", label: "🌈 All" },
+        { id: "base", label: "🍞 Base" },
+        { id: "protein", label: "🍗 Protein" },
+        { id: "veg", label: "🥬 Veggies" },
+        { id: "fruit", label: "🍎 Fruit" },
+        { id: "dairy", label: "🧀 Dairy" },
+        { id: "sweet", label: "🍬 Sweet" },
+        { id: "spice", label: "🌶️ Spice" },
+        { id: "top", label: "✨ Toppings" },
+      ];
+
+      var COOK_METHODS = [
+        { id: "oven", label: "🔥 Oven bake" },
+        { id: "stove", label: "🍳 Stove fry" },
+        { id: "boil", label: "♨️ Boil" },
+        { id: "grill", label: "🥙 Grill" },
+        { id: "chill", label: "❄️ Chill" },
+        { id: "blend", label: "🌀 Blend" },
+      ];
+
+      var RECIPES = [
+        { name: "Chocolate Chip Cookies", region: "🇺🇸 USA", diff: "Easy", cook: "oven", tip: "Butter makes them chewy!", needs: ["🌾","🥚","🍫","🧈","🍯"] },
+        { name: "Strawberry Smoothie", region: "🇺🇸 USA", diff: "Easy", cook: "blend", tip: "Add ice to make it frosty!", needs: ["🍓","🥛","🍌","🧊","🍯"] },
+        { name: "Margherita Pizza", region: "🇮🇹 Italy", diff: "Medium", cook: "oven", tip: "Basil goes on last!", needs: ["🌾","🍅","🧀","🍃","🫒"] },
+        { name: "Pancake Stack", region: "🇺🇸 USA", diff: "Easy", cook: "stove", tip: "Flip when bubbles pop!", needs: ["🌾","🥚","🥛","🍯","🧈"] },
+        { name: "Rainbow Fruit Salad", region: "🌈 Anywhere", diff: "Easy", cook: "chill", tip: "Use lots of colors!", needs: ["🍎","🍇","🍊","🍌","🍓","🍍"] },
+        { name: "Grilled Cheese", region: "🇺🇸 USA", diff: "Easy", cook: "stove", tip: "Low heat = melty cheese!", needs: ["🍞","🧀","🧈"] },
+        { name: "Veggie Tacos", region: "🇲🇽 Mexico", diff: "Medium", cook: "grill", tip: "Squeeze lime at the end!", needs: ["🌮","🥬","🍅","🧀","🌶️","🍋"] },
+        { name: "Chicken Stir-Fry", region: "🇨🇳 China", diff: "Medium", cook: "stove", tip: "Keep the pan hot!", needs: ["🍗","🫑","🥕","🧅","🍚","🫚"] },
+        { name: "Tomato Pasta", region: "🇮🇹 Italy", diff: "Easy", cook: "boil", tip: "Save some pasta water!", needs: ["🍝","🍅","🧄","🍃","🧀","🫒"] },
+        { name: "Berry Parfait", region: "🇫🇷 France", diff: "Easy", cook: "chill", tip: "Layer yogurt and fruit!", needs: ["🫕","🍓","🫐","🍯","⭐"] },
+        { name: "Miso Soup Bowl", region: "🇯🇵 Japan", diff: "Medium", cook: "boil", tip: "Gentle simmer, don't boil hard!", needs: ["🍄","🧅","🐟","🍃","🫚"] },
+        { name: "Loaded Baked Potato", region: "🇺🇸 USA", diff: "Medium", cook: "oven", tip: "Crispy skin is the best!", needs: ["🥔","🧀","🥓","🧈","🥒"] },
+        { name: "Honey Lemon Tea", region: "🇬🇧 UK", diff: "Easy", cook: "boil", tip: "Perfect when you're cozy!", needs: ["🍋","🍯","🧊"] },
+        { name: "Spicy Bean Burrito", region: "🇲🇽 Mexico", diff: "Medium", cook: "grill", tip: "Roll it tight!", needs: ["🌮","🫘","🍅","🧀","🌶️","🥬"] },
+        { name: "Apple Cinnamon Oat Bowl", region: "🇺🇸 USA", diff: "Easy", cook: "stove", tip: "Stir in the honey last!", needs: ["🍎","🍯","🧈","🥛","🌾"] },
+        { name: "Shrimp Fried Rice", region: "🇹🇭 Thailand", diff: "Hard", cook: "stove", tip: "Use day-old rice!", needs: ["🍚","🍤","🥕","🧅","🥚","🫚"] },
+        { name: "Peach Smoothie Bowl", region: "🇧🇷 Brazil", diff: "Easy", cook: "blend", tip: "Top with crunchy nuts!", needs: ["🍑","🍌","🥛","🥜","🍯"] },
+        { name: "Mushroom Risotto", region: "🇮🇹 Italy", diff: "Hard", cook: "stove", tip: "Stir, stir, stir!", needs: ["🍚","🍄","🧅","🧈","🧀","🍃"] },
+        { name: "Peanut Butter Sandwich", region: "🇺🇸 USA", diff: "Easy", cook: "chill", tip: "Crunchy or smooth — you pick!", needs: ["🍞","🥜","🍯","🍌"] },
+        { name: "Grilled Fish Plate", region: "🇬🇷 Greece", diff: "Medium", cook: "grill", tip: "A squeeze of lemon!", needs: ["🐟","🍋","🫒","🍅","🥔"] },
+      ];
+
+      var CREATIVE_PREFIX = ["Mystery", "Super", "Mega", "Cosmic", "Chef's", "Wild", "Rainbow", "Secret", "Golden", "Sparkle"];
+      var CREATIVE_SUFFIX = ["Surprise", "Delight", "Special", "Mix", "Feast", "Bowl", "Creation", "Masterpiece", "Platter", "Wonder"];
+
+      var bowl = [], recipeIdx = 0, mode = "recipe", cat = "all", cookMethod = null;
+      var step = 0, mixed = false, dishes = 0, stars = 0, level = 1;
+      var actionBtn = document.getElementById("actionBtn");
+
+      function current() { return RECIPES[recipeIdx]; }
+
+      function countMap(arr) {
+        var m = {};
+        arr.forEach(function (e) { m[e] = (m[e] || 0) + 1; });
+        return m;
+      }
+
+      function hasIngredients(have, need) {
+        var h = countMap(have), n = countMap(need);
+        for (var k in n) if ((h[k] || 0) < n[k]) return false;
+        return true;
+      }
+
+      function resetCooking() {
+        step = 0; mixed = false; cookMethod = null;
+        document.querySelectorAll(".cook-btn").forEach(function (b) { b.classList.remove("selected"); });
+        updateSteps(); updateActionBtn();
+      }
+
+      function setMode(next) {
+        mode = next;
+        bowl = [];
+        resetCooking();
+        document.getElementById("recipeModeBtn").classList.toggle("active", mode === "recipe");
+        document.getElementById("creativeModeBtn").classList.toggle("active", mode === "creative");
+        document.getElementById("recipeCard").classList.toggle("hidden", mode === "creative");
+        document.getElementById("creativeBanner").classList.toggle("visible", mode === "creative");
+        document.getElementById("shuffleBtn").style.display = mode === "recipe" ? "" : "none";
+        document.getElementById("status").textContent = mode === "creative"
+          ? "Invent anything — mix, cook, serve!"
+          : "Follow the recipe: add → mix → cook → serve!";
+        renderBowl(); renderRecipe();
+      }
+
+      function updateSteps() {
+        var el = document.getElementById("steps");
+        if (mode !== "recipe") { el.innerHTML = ""; return; }
+        var labels = ["1. Add", "2. Mix", "3. Cook", "4. Serve"];
+        el.innerHTML = labels.map(function (lbl, i) {
+          var cls = "step-dot";
+          if (i < step) cls += " done";
+          if (i === step) cls += " active";
+          return '<span class="' + cls + '">' + lbl + "</span>";
+        }).join("");
+      }
+
+      function updateActionBtn() {
+        if (mode === "creative") {
+          if (!mixed) actionBtn.textContent = "🌀 Mix it up!";
+          else if (!cookMethod) actionBtn.textContent = "Pick cooking method ↑";
+          else actionBtn.textContent = "🍽️ Serve creation!";
+          return;
+        }
+        if (step === 0) actionBtn.textContent = "Next: Mix ingredients";
+        else if (step === 1) actionBtn.textContent = "🌀 Mix!";
+        else if (step === 2) actionBtn.textContent = cookMethod ? "🍽️ Serve dish!" : "Pick cooking method ↑";
+        else actionBtn.textContent = "🍽️ Serve!";
+      }
+
+      function renderRecipe() {
+        if (mode !== "recipe") return;
+        var r = current();
+        document.getElementById("recipeName").textContent = r.name;
+        document.getElementById("recipeMeta").innerHTML =
+          '<span class="tag">' + r.region + "</span>" +
+          '<span class="tag">' + r.diff + "</span>" +
+          '<span class="tag">' + COOK_METHODS.find(function (m) { return m.id === r.cook; }).label + "</span>";
+        document.getElementById("recipeTip").textContent = "💡 " + r.tip;
+        var have = countMap(bowl);
+        document.getElementById("recipeNeeds").innerHTML = r.needs.map(function (e) {
+          var got = have[e] > 0;
+          if (got) have[e]--;
+          return '<span class="need-item' + (got ? " got" : "") + '">' + e + "</span>";
+        }).join("");
+        document.getElementById("cookHint").textContent = step >= 2
+          ? "Recipe wants: " + COOK_METHODS.find(function (m) { return m.id === r.cook; }).label
+          : "You'll cook after mixing!";
+        updateSteps(); updateActionBtn();
+      }
+
+      function renderCatTabs() {
+        var box = document.getElementById("catTabs");
+        box.innerHTML = "";
+        CATEGORIES.forEach(function (c) {
+          var b = document.createElement("button");
+          b.type = "button"; b.className = "cat-tab" + (cat === c.id ? " active" : "");
+          b.textContent = c.label;
+          b.onclick = function () { cat = c.id; renderCatTabs(); renderPantry(); };
+          box.appendChild(b);
+        });
+      }
+
+      function renderPantry() {
+        var box = document.getElementById("pantry");
+        box.innerHTML = "";
+        INGREDIENTS.forEach(function (ing, idx) {
+          if (cat !== "all" && ing.c !== cat) return;
+          var b = document.createElement("button");
+          b.type = "button"; b.className = "ingredient";
+          b.title = ing.n;
+          b.innerHTML = '<span class="emo">' + ing.e + '</span><span class="lbl">' + ing.n + "</span>";
+          b.onclick = function () {
+            bowl.push(ing.e);
+            renderBowl();
+            if (mode === "recipe") renderRecipe();
+            document.getElementById("status").textContent = "Added " + ing.n + "!";
+          };
+          box.appendChild(b);
+        });
+      }
+
+      function renderCookBtns() {
+        var box = document.getElementById("cookBtns");
+        box.innerHTML = "";
+        COOK_METHODS.forEach(function (m) {
+          var b = document.createElement("button");
+          b.type = "button"; b.className = "cook-btn" + (cookMethod === m.id ? " selected" : "");
+          b.textContent = m.label;
+          b.onclick = function () {
+            cookMethod = m.id;
+            renderCookBtns();
+            if (mode === "recipe" && mixed && step === 2) {
+              document.getElementById("status").textContent = "Ready to serve!";
+            }
+            updateActionBtn();
+          };
+          box.appendChild(b);
+        });
+      }
+
+      function renderBowl() {
+        var box = document.getElementById("bowl");
+        if (!bowl.length) {
+          box.innerHTML = '<span style="color:var(--text-muted);font-size:0.85rem">Empty bowl</span>';
+          return;
+        }
+        box.innerHTML = "";
+        bowl.forEach(function (e, i) {
+          var s = document.createElement("span");
+          s.className = "bowl-item"; s.textContent = e;
+          s.title = "Remove";
+          s.onclick = function () {
+            bowl.splice(i, 1);
+            renderBowl();
+            if (mode === "recipe") renderRecipe();
+          };
+          box.appendChild(s);
+        });
+      }
+
+      function addStars(n) {
+        stars += n;
+        if (dishes > 0 && dishes % 5 === 0) {
+          level++;
+          document.getElementById("status").textContent = "Level up! You're Chef level " + level + "! 👨‍🍳";
+        }
+        document.getElementById("stars").textContent = stars;
+        document.getElementById("level").textContent = level;
+      }
+
+      function creativeName() {
+        var type = document.getElementById("dishType").value;
+        var pre = CREATIVE_PREFIX[Math.floor(Math.random() * CREATIVE_PREFIX.length)];
+        var suf = CREATIVE_SUFFIX[Math.floor(Math.random() * CREATIVE_SUFFIX.length)];
+        var typeLabel = document.getElementById("dishType").selectedOptions[0].text.replace(/^[^\s]+\s/, "");
+        var emos = bowl.slice(0, 3).join("");
+        return pre + " " + typeLabel + " " + suf + (emos ? " " + emos : "");
+      }
+
+      function serveCreative() {
+        if (!bowl.length) {
+          document.getElementById("status").textContent = "Add some ingredients first!";
+          return;
+        }
+        if (!mixed) {
+          document.getElementById("status").textContent = "Mix your ingredients first!";
+          return;
+        }
+        if (!cookMethod) {
+          document.getElementById("status").textContent = "Pick how to cook it!";
+          return;
+        }
+        dishes++;
+        document.getElementById("score").textContent = dishes;
+        var bonus = Math.min(3, 1 + Math.floor(bowl.length / 3));
+        addStars(bonus);
+        document.getElementById("status").textContent = "You made: " + creativeName() + "! ⭐".repeat(bonus);
+        bowl = []; resetCooking(); renderBowl();
+      }
+
+      function serveRecipe() {
+        var r = current();
+        if (step === 0) {
+          if (!hasIngredients(bowl, r.needs)) {
+            document.getElementById("status").textContent = "Keep adding — check the recipe list!";
+            return;
+          }
+          step = 1; updateSteps(); updateActionBtn();
+          document.getElementById("status").textContent = "Great! Now mix everything!";
+          return;
+        }
+        if (step === 1) {
+          mixed = true; step = 2; updateSteps(); updateActionBtn();
+          document.getElementById("status").textContent = "Mixed! Now pick the right cooking method.";
+          renderRecipe();
+          return;
+        }
+        if (step === 2) {
+          if (!cookMethod) {
+            document.getElementById("status").textContent = "Choose how to cook on the right →";
+            return;
+          }
+          if (cookMethod !== r.cook) {
+            document.getElementById("status").textContent = "Wrong cooking method! Check the recipe tag.";
+            return;
+          }
+          step = 3; updateSteps(); updateActionBtn();
+          document.getElementById("status").textContent = "Smells amazing! Serve it!";
+          return;
+        }
+        dishes++;
+        document.getElementById("score").textContent = dishes;
+        var bonus = r.diff === "Hard" ? 3 : r.diff === "Medium" ? 2 : 1;
+        addStars(bonus);
+        document.getElementById("status").textContent = r.name + " served! " + "⭐".repeat(bonus);
+        bowl = [];
+        recipeIdx = (recipeIdx + 1) % RECIPES.length;
+        resetCooking();
+        renderRecipe(); renderBowl();
+      }
+
+      document.getElementById("clearBtn").onclick = function () {
+        bowl = []; resetCooking(); renderBowl();
+        if (mode === "recipe") renderRecipe();
+        document.getElementById("status").textContent = "Bowl cleared!";
+      };
+
+      document.getElementById("recipeModeBtn").onclick = function () { setMode("recipe"); };
+      document.getElementById("creativeModeBtn").onclick = function () { setMode("creative"); };
+      document.getElementById("shuffleBtn").onclick = function () {
+        recipeIdx = Math.floor(Math.random() * RECIPES.length);
+        bowl = []; resetCooking(); renderRecipe(); renderBowl();
+        document.getElementById("status").textContent = "New recipe: " + current().name + "!";
+      };
+
+      actionBtn.onclick = function () {
+        if (mode === "creative") {
+          if (!mixed) { mixed = true; updateActionBtn(); document.getElementById("status").textContent = "Mixed! Pick a cooking method."; return; }
+          serveCreative();
+        } else {
+          serveRecipe();
+        }
+      };
+
+      renderCatTabs(); renderPantry(); renderCookBtns(); renderRecipe(); renderBowl(); updateActionBtn();
+    </script>
+    <script src="../shared.js"></script>
+  </body>
+</html>

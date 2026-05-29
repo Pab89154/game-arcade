@@ -233,7 +233,7 @@
         </header>
 
         <div class="game-panel">
-          <p class="progress" id="progress">Question 1 of 40</p>
+          <p class="progress" id="progress">Question 1 of 10</p>
           <p class="question-label" id="question">Would you rather…</p>
 
           <div class="options-wrap">
@@ -252,7 +252,7 @@
 
           <div class="reaction-panel" id="reaction">
             <p class="reaction-text" id="reaction-text"></p>
-            <div class="tally-bar" role="img" aria-label="Fun poll results">
+            <div class="tally-bar" role="img" aria-label="Fun random poll results">
               <div class="tally-a" id="tally-a">50%</div>
               <div class="tally-b" id="tally-b">50%</div>
             </div>
@@ -324,6 +324,8 @@
         "Awesome pick! 🌟",
       ];
 
+      const ROUND_SIZE = 10;
+
       const progressEl = document.getElementById("progress");
       const questionEl = document.getElementById("question");
       const optionA = document.getElementById("option-a");
@@ -344,7 +346,6 @@
       let deck = [];
       let currentIndex = 0;
       let answered = false;
-      let fakePercentA = 50;
 
       function shuffle(arr) {
         const copy = arr.slice();
@@ -355,18 +356,21 @@
         return copy;
       }
 
-      function resetDeck() {
-        deck = shuffle(QUESTIONS.map((_, i) => i));
+      function resetRound() {
+        deck = shuffle(QUESTIONS.map(function (_, i) { return i; })).slice(0, ROUND_SIZE);
         currentIndex = 0;
       }
 
       function showQuestion() {
         answered = false;
-        const q = QUESTIONS[deck[currentIndex]];
+        const questionIndex = deck[currentIndex];
+        const q = QUESTIONS[questionIndex];
 
         progressEl.textContent =
-          "Question " + (currentIndex + 1) + " of " + QUESTIONS.length;
+          "Question " + (currentIndex + 1) + " of " + ROUND_SIZE;
         questionEl.textContent = "Would you rather…";
+        nextBtn.textContent =
+          currentIndex + 1 >= ROUND_SIZE ? "New round" : "Next question";
 
         emojiA.textContent = q.a;
         emojiB.textContent = q.b;
@@ -394,16 +398,16 @@
         chosen.classList.add("chosen");
         other.classList.add("not-chosen");
 
-        fakePercentA = 25 + Math.floor(Math.random() * 51);
-        const fakePercentB = 100 - fakePercentA;
+        const randomA = 25 + Math.floor(Math.random() * 51);
+        const randomB = 100 - randomA;
 
         reactionText.textContent =
           REACTIONS[Math.floor(Math.random() * REACTIONS.length)];
 
-        tallyA.style.width = fakePercentA + "%";
-        tallyB.style.width = fakePercentB + "%";
-        tallyA.textContent = fakePercentA + "%";
-        tallyB.textContent = fakePercentB + "%";
+        tallyA.style.width = randomA + "%";
+        tallyB.style.width = randomB + "%";
+        tallyA.textContent = randomA + "%";
+        tallyB.textContent = randomB + "%";
 
         labelA.textContent = textA.textContent;
         labelB.textContent = textB.textContent;
@@ -413,9 +417,10 @@
       }
 
       function nextQuestion() {
-        currentIndex++;
-        if (currentIndex >= deck.length) {
-          resetDeck();
+        if (currentIndex + 1 >= ROUND_SIZE) {
+          resetRound();
+        } else {
+          currentIndex++;
         }
         showQuestion();
       }
@@ -424,7 +429,7 @@
       optionB.addEventListener("click", () => pick("b"));
       nextBtn.addEventListener("click", nextQuestion);
 
-      resetDeck();
+      resetRound();
       showQuestion();
     </script>
     <script src="../shared.js"></script>

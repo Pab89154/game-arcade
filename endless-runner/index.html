@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Endless Runner — Game Arcade</title>
+    <link rel="stylesheet" href="../shared.css" />
+    <style>
+      .main { max-width: 560px; }
+      canvas {
+        border: 2px solid var(--ocean);
+        border-radius: var(--radius);
+        background: #060912;
+        display: block;
+        max-width: 100%;
+        touch-action: none;
+        cursor: pointer;
+      }
+      .controls {
+        display: flex;
+        gap: 0.75rem;
+        justify-content: center;
+        flex-wrap: wrap;
+        width: 100%;
+      }
+      .controls button {
+        flex: 1;
+        min-width: 120px;
+        max-width: 180px;
+        padding: 0.75rem 1rem;
+        border: 2px solid var(--neon-blue);
+        border-radius: var(--radius);
+        background: var(--surface);
+        color: var(--text);
+        font-family: inherit;
+        font-size: 1rem;
+        font-weight: 700;
+        cursor: pointer;
+      }
+      .controls button:active { background: var(--surface-hover); }
+      .hint { font-size: 0.85rem; color: var(--text-muted); text-align: center; }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <main class="main">
+        <a class="back-link" href="../index.html">← Back to Arcade</a>
+        <header class="header">
+          <div class="game-card-icon">⚽</div>
+          <h1>Endless Runner</h1>
+        </header>
+        <div class="game-panel">
+          <div class="score-bar">
+            <div>Score: <span id="score">0</span></div>
+            <div>Best: <span id="best">0</span></div>
+          </div>
+          <p class="status" id="status">Press Space to start</p>
+          <canvas id="c" width="640" height="220" aria-label="Ball runner game"></canvas>
+          <div class="controls">
+            <button type="button" id="jumpBtn">⬆️ Jump</button>
+            <button type="button" id="duckBtn">⬇️ Duck</button>
+          </div>
+          <p class="hint">Jump over spikes · Duck under swinging humans · Space/↑ jump · ↓ duck</p>
+        </div>
+      </main>
+    </div>
+    <script>
+      var canvas = document.getElementById("c");
+      var ctx = canvas.getContext("2d");
+      var W = canvas.width;
+      var H = canvas.height;
+      var GROUND = H - 36;
+
+      var state = "idle";
+      var score = 0;
+      var best = 0;
+      var speed = 6;
+      var frame = 0;
+      var obstacles = [];
+      var nextSpawn = 90;
+
+      var ball = {
+        x: 72,
+        r: 16,
+        duckR: 11,
+        y: GROUND,
+        vy: 0,
+        duck: false,
+        grounded: true,
+      };
+
+      var GRAVITY = 0.62;
+      var JUMP = -11.5;
+
+      try {
+        best = parseInt(localStorage.getItem("gameArcadeRunnerBest"), 10) || 0;
+      } catch (e) {}
+      document.getElementById("best").textContent = best;
+
+      function ballRadius() {
+        return ball.duck && ball.grounded ? ball.duckR : ball.r;
+      }
+
+      function ballCenterY() {
+        return ball.y - ballRadius();
+      }
+
+      function resetGame() {
+        score = 0;
+        speed = 6;
+        frame = 0;
+        obstacles = [];
+        nextSpawn = 90;
+        ball.y = GROUND;
+        ball.vy = 0;
+        ball.duck = false;
+        ball.grounded = true;
+        document.getElementById("score").textContent = "0";
+      }
+
+      function spawnObstacle() {
+        var type = Math.random() < 0.55 ? "spike" : "human";
+        if (type === "spike") {
+          var count = 1 + (Math.random() < 0.35 ? 1 : 0);
+          obstacles.push({
+            type: "spike",
+            x: W + 10,
+            w: 14 + count * 18,
+            h: 28,
+            spikes: count,
+          });
+        } else {
+          obstacles.push({
+            type: "human",
+            x: W + 10,
+            w: 36,
+            h: 52,
+            swing: 0,
+          });
+        }
+      }
+
+      function rectsOverlap(ax, ay, aw, ah, bx, by, bw, bh) {
+        return ax < bx + bw && ax + aw > bx && ay < by + bh && ay + ah > by;
+      }
+
+      function circleRectHit(cx, cy, cr, rx, ry, rw, rh) {
+        var nearX = Math.max(rx, Math.min(cx, rx + rw));
+        var nearY = Math.max(ry, Math.min(cy, ry + rh));
+        var dx = cx - nearX;
+        var dy = cy - nearY;
+        return dx * dx + dy * dy < cr * cr;
+      }
+
+      function checkCollision() {
+        var cr = ballRadius();
+        var cx = ball.x;
+        var cy = ballCenterY();
+
+        for (var i = 0; i < obstacles.length; i++) {
+          var o = obstacles[i];
+          if (o.type === "spike") {
+            var spikeTop = GROUND - o.h;
+            if (circleRectHit(cx, cy, cr - 2, o.x, spikeTop, o.w, o.h)) {
+              return true;
+            }
+          } else if (o.type === "human") {
+            var swingY = GROUND - o.h + 8 + Math.sin(o.swing) * 4;
+            var batY = swingY + 6;
+            var batH = 18;
+            if (circleRectHit(cx, cy, cr - 2, o.x + 4, batY, o.w - 8, batH)) {
+              return true;
+            }
+            var headY = GROUND - o.h;
+            if (circleRectHit(cx, cy, cr - 2, o.x + 10, headY, 16, 16)) {
+              return true;
+            }
+          }
+        }
+        return false;
+      }
+
+      function update() {
+        frame++;
+        speed = 6 + Math.min(score / 120, 8);
+
+        if (ball.duck && ball.grounded) {
+          ball.vy = 0;
+        } else {
+          ball.vy += GRAVITY;
+        }
+        ball.y += ball.vy;
+        if (ball.y >= GROUND) {
+          ball.y = GROUND;
+          ball.vy = 0;
+          ball.grounded = true;
+        } else {
+          ball.grounded = false;
+          ball.duck = false;
+        }
+
+        nextSpawn--;
+        if (nextSpawn <= 0) {
+          spawnObstacle();
+          nextSpawn = Math.max(48, 100 - speed * 4 + Math.random() * 30);
+        }
+
+        obstacles.forEach(function (o) {
+          o.x -= speed;
+          if (o.type === "human") o.swing += 0.18;
+        });
+        obstacles = obstacles.filter(function (o) {
+          return o.x + o.w > -20;
+        });
+
+        score += speed / 18;
+        document.getElementById("score").textContent = Math.floor(score);
+
+        if (checkCollision()) gameOver();
+      }
+
+      function drawGround() {
+        ctx.strokeStyle = "rgba(0, 217, 255, 0.35)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(0, GROUND + 2);
+        ctx.lineTo(W, GROUND + 2);
+        ctx.stroke();
+
+        ctx.fillStyle = "rgba(0, 217, 255, 0.08)";
+        var offset = (frame * speed) % 24;
+        for (var x = -offset; x < W; x += 24) {
+          ctx.fillRect(x, GROUND + 4, 10, 3);
+        }
+      }
+
+      function drawSpike(o) {
+        ctx.fillStyle = "#FF2DAA";
+        var spikes = o.spikes || 1;
+        var eachW = o.w / spikes;
+        for (var i = 0; i < spikes; i++) {
+          var sx = o.x + i * eachW;
+          ctx.beginPath();
+          ctx.moveTo(sx, GROUND);
+          ctx.lineTo(sx + eachW / 2, GROUND - o.h);
+          ctx.lineTo(sx + eachW, GROUND);
+          ctx.closePath();
+          ctx.fill();
+        }
+      }
+
+      function drawHuman(o) {
+        var footY = GROUND;
+        var headX = o.x + o.w / 2;
+        var headY = footY - o.h + 14;
+
+        ctx.fillStyle = "#D9D9D9";
+        ctx.beginPath();
+        ctx.arc(headX, headY, 10, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = "#D9D9D9";
+        ctx.lineWidth = 4;
+        ctx.lineCap = "round";
+        ctx.beginPath();
+        ctx.moveTo(headX, headY + 10);
+        ctx.lineTo(headX, footY - 8);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(headX - 12, footY - 4);
+        ctx.lineTo(headX + 12, footY - 4);
+        ctx.stroke();
+
+        var swingY = GROUND - o.h + 8 + Math.sin(o.swing) * 4;
+        ctx.strokeStyle = "#8A2BE2";
+        ctx.lineWidth = 5;
+        ctx.beginPath();
+        ctx.moveTo(headX + 8, headY + 4);
+        ctx.lineTo(o.x + o.w - 4, swingY + 14);
+        ctx.stroke();
+
+        ctx.fillStyle = "#FF2DAA";
+        ctx.beginPath();
+        ctx.arc(o.x + o.w - 4, swingY + 14, 7, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      function drawBall() {
+        var cr = ballRadius();
+        var cy = ballCenterY();
+
+        ctx.fillStyle = "#00D9FF";
+        ctx.beginPath();
+        ctx.arc(ball.x, cy, cr, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = "rgba(255,255,255,0.35)";
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.arc(ball.x - cr * 0.3, cy - cr * 0.3, cr * 0.25, 0, Math.PI * 2);
+        ctx.stroke();
+      }
+
+      function draw() {
+        ctx.fillStyle = "#060912";
+        ctx.fillRect(0, 0, W, H);
+        drawGround();
+
+        obstacles.forEach(function (o) {
+          if (o.type === "spike") drawSpike(o);
+          else drawHuman(o);
+        });
+
+        drawBall();
+
+        if (state === "idle") {
+          ctx.fillStyle = "rgba(255,255,255,0.85)";
+          ctx.font = "bold 16px system-ui, sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText("Press Space to start", W / 2, H / 2 - 10);
+        } else if (state === "over") {
+          ctx.fillStyle = "rgba(255,45,170,0.9)";
+          ctx.font = "bold 20px system-ui, sans-serif";
+          ctx.textAlign = "center";
+          ctx.fillText("Game Over — Press Space", W / 2, H / 2 - 10);
+        }
+      }
+
+      function gameLoop() {
+        if (state !== "playing") return;
+        update();
+        draw();
+        requestAnimationFrame(gameLoop);
+      }
+
+      function startGame() {
+        resetGame();
+        state = "playing";
+        document.getElementById("status").textContent = "Go!";
+        gameLoop();
+      }
+
+      function gameOver() {
+        state = "over";
+        var s = Math.floor(score);
+        if (s > best) {
+          best = s;
+          localStorage.setItem("gameArcadeRunnerBest", String(best));
+          document.getElementById("best").textContent = best;
+        }
+        document.getElementById("status").textContent = "Game over! Score: " + s;
+        draw();
+      }
+
+      function jump() {
+        if (state === "idle" || state === "over") {
+          startGame();
+          jump();
+          return;
+        }
+        if (ball.grounded && !ball.duck) {
+          ball.vy = JUMP;
+          ball.grounded = false;
+          ball.duck = false;
+        }
+      }
+
+      function setDuck(on) {
+        if (state !== "playing") return;
+        if (on && ball.grounded) ball.duck = true;
+        else ball.duck = false;
+      }
+
+      document.getElementById("jumpBtn").addEventListener("click", jump);
+      document.getElementById("duckBtn").addEventListener("mousedown", function () { setDuck(true); });
+      document.getElementById("duckBtn").addEventListener("mouseup", function () { setDuck(false); });
+      document.getElementById("duckBtn").addEventListener("mouseleave", function () { setDuck(false); });
+      document.getElementById("duckBtn").addEventListener("touchstart", function (e) {
+        e.preventDefault();
+        setDuck(true);
+      });
+      document.getElementById("duckBtn").addEventListener("touchend", function () { setDuck(false); });
+
+      canvas.addEventListener("click", jump);
+
+      document.addEventListener("keydown", function (e) {
+        if (e.code === "Space" || e.code === "ArrowUp") {
+          e.preventDefault();
+          jump();
+        } else if (e.code === "ArrowDown") {
+          e.preventDefault();
+          setDuck(true);
+        }
+      });
+      document.addEventListener("keyup", function (e) {
+        if (e.code === "ArrowDown") setDuck(false);
+      });
+
+      resetGame();
+      draw();
+    </script>
+    <script src="../shared.js"></script>
+  </body>
+</html>
