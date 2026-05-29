@@ -1,0 +1,541 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Funny Voice Changer — Game Arcade</title>
+    <link rel="stylesheet" href="../shared.css" />
+    <style>
+      .voice-main {
+        max-width: 560px;
+        width: 100%;
+      }
+
+      .steps {
+        text-align: center;
+        color: var(--text-muted);
+        font-weight: 600;
+        font-size: 1.05rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .record-zone {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 1rem;
+        padding: 1.5rem 1rem;
+      }
+
+      .mic-btn {
+        width: 140px;
+        height: 140px;
+        border-radius: 50%;
+        border: 5px solid var(--neon-pink);
+        background: linear-gradient(145deg, #2a1030, #1a0820);
+        font-size: 4rem;
+        cursor: pointer;
+        box-shadow: 0 8px 28px rgba(255, 45, 170, 0.35);
+        transition: transform 0.1s ease, box-shadow 0.2s ease;
+        line-height: 1;
+      }
+
+      .mic-btn:hover {
+        transform: scale(1.06);
+      }
+
+      .mic-btn:active {
+        transform: scale(0.94);
+      }
+
+      .mic-btn.recording {
+        border-color: #ff4444;
+        animation: pulse-rec 0.9s ease-in-out infinite;
+        box-shadow: 0 0 30px rgba(255, 68, 68, 0.6);
+      }
+
+      @keyframes pulse-rec {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.08); }
+      }
+
+      .status {
+        font-size: 1.15rem;
+        font-weight: 700;
+        min-height: 1.6em;
+        text-align: center;
+      }
+
+      .status.recording { color: #ff6b6b; }
+      .status.ready { color: var(--neon-green); }
+      .status.hint { color: var(--text-muted); font-weight: 600; }
+
+      .timer {
+        font-size: 2rem;
+        font-weight: 800;
+        color: var(--neon-blue);
+        font-variant-numeric: tabular-nums;
+      }
+
+      .voice-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 0.75rem;
+        width: 100%;
+      }
+
+      .voice-btn {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.25rem;
+        padding: 1rem 0.5rem;
+        border: 3px solid var(--ocean);
+        border-radius: var(--radius);
+        background: var(--surface-hover);
+        color: var(--text);
+        cursor: pointer;
+        font-family: inherit;
+        font-size: 0.95rem;
+        font-weight: 700;
+        transition: transform 0.08s ease, border-color 0.15s ease, background 0.15s ease;
+      }
+
+      .voice-btn .emoji {
+        font-size: 2rem;
+        line-height: 1;
+      }
+
+      .voice-btn:hover:not(:disabled) {
+        transform: scale(1.03);
+        border-color: var(--neon-purple);
+      }
+
+      .voice-btn.selected {
+        border-color: var(--neon-green);
+        background: rgba(57, 255, 20, 0.12);
+        box-shadow: 0 0 16px rgba(57, 255, 20, 0.25);
+      }
+
+      .voice-btn:disabled {
+        opacity: 0.35;
+        cursor: not-allowed;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        justify-content: center;
+        width: 100%;
+      }
+
+      .actions .btn {
+        min-width: 140px;
+      }
+
+      .tip {
+        font-size: 0.85rem;
+        color: var(--text-muted);
+        text-align: center;
+        margin-top: 0.5rem;
+      }
+
+      @media (max-width: 400px) {
+        .voice-grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <main class="main voice-main">
+        <a class="back-link" href="../index.html">← Back to Arcade</a>
+
+        <header class="header">
+          <div class="game-card-icon" aria-hidden="true">🎙️</div>
+          <h1>Funny Voice Changer</h1>
+          <p class="tagline">Record your voice, then make it sound silly!</p>
+        </header>
+
+        <div class="game-panel">
+          <p class="steps">1️⃣ Record &nbsp;→&nbsp; 2️⃣ Pick a voice &nbsp;→&nbsp; 3️⃣ Play!</p>
+
+          <div class="record-zone">
+            <button class="mic-btn" id="micBtn" type="button" aria-label="Record your voice">🎤</button>
+            <div class="timer" id="timer" hidden>0:00</div>
+            <p class="status hint" id="status">Tap the microphone and say something funny!</p>
+          </div>
+
+          <h2 class="store-title">Pick a funny voice</h2>
+          <div class="voice-grid" id="voiceGrid"></div>
+
+          <div class="actions">
+            <button class="btn" id="playBtn" type="button" disabled>▶ Play</button>
+            <button class="btn btn-secondary" id="stopBtn" type="button" disabled>⏹ Stop</button>
+            <button class="btn btn-secondary" id="againBtn" type="button" disabled>🔄 Record again</button>
+          </div>
+
+          <p class="tip">Tip: Say something short like “Hello!” or “I am a robot!” — max 10 seconds.</p>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      const VOICES = [
+        { id: "normal", emoji: "😊", name: "Normal", desc: "Just you!" },
+        { id: "chipmunk", emoji: "🐿️", name: "Chipmunk", desc: "Super squeaky!" },
+        { id: "helium", emoji: "🎈", name: "Helium", desc: "Balloon voice!" },
+        { id: "giant", emoji: "🦕", name: "Giant", desc: "Big and deep!" },
+        { id: "monster", emoji: "👹", name: "Monster", desc: "Scary growl!" },
+        { id: "robot", emoji: "🤖", name: "Robot", desc: "Beep boop!" },
+        { id: "alien", emoji: "👽", name: "Alien", desc: "From outer space!" },
+        { id: "underwater", emoji: "🐠", name: "Underwater", desc: "Glub glub!" },
+        { id: "echo", emoji: "🏔️", name: "Echo Cave", desc: "Echo… echo…" },
+        { id: "slowmo", emoji: "🐢", name: "Slow Motion", desc: "So… slow…" },
+      ];
+
+      const MAX_SECONDS = 10;
+
+      const micBtn = document.getElementById("micBtn");
+      const timerEl = document.getElementById("timer");
+      const statusEl = document.getElementById("status");
+      const voiceGrid = document.getElementById("voiceGrid");
+      const playBtn = document.getElementById("playBtn");
+      const stopBtn = document.getElementById("stopBtn");
+      const againBtn = document.getElementById("againBtn");
+
+      let audioContext = null;
+      let mediaRecorder = null;
+      let recordedChunks = [];
+      let audioBuffer = null;
+      let selectedVoice = "chipmunk";
+      let isRecording = false;
+      let timerInterval = null;
+      let recordStart = 0;
+      let activeNodes = [];
+      let alienLfo = null;
+
+      function getAudioContext() {
+        if (!audioContext) {
+          audioContext = new (window.AudioContext || window.webkitAudioContext)();
+        }
+        return audioContext;
+      }
+
+      function setStatus(text, kind) {
+        statusEl.textContent = text;
+        statusEl.className = "status " + (kind || "hint");
+      }
+
+      function formatTime(ms) {
+        const total = Math.floor(ms / 1000);
+        const mins = Math.floor(total / 60);
+        const secs = total % 60;
+        return mins + ":" + String(secs).padStart(2, "0");
+      }
+
+      function stopPlayback() {
+        activeNodes.forEach(function (node) {
+          try {
+            if (node.stop) node.stop(0);
+            node.disconnect();
+          } catch (_) {}
+        });
+        activeNodes = [];
+        if (alienLfo) {
+          try { alienLfo.stop(); alienLfo.disconnect(); } catch (_) {}
+          alienLfo = null;
+        }
+        playBtn.disabled = !audioBuffer;
+        stopBtn.disabled = true;
+      }
+
+      function buildVoiceButtons() {
+        VOICES.forEach(function (voice) {
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = "voice-btn" + (voice.id === selectedVoice ? " selected" : "");
+          btn.dataset.voice = voice.id;
+          btn.disabled = true;
+          btn.innerHTML =
+            '<span class="emoji">' + voice.emoji + "</span>" +
+            "<span>" + voice.name + "</span>" +
+            '<span style="font-size:0.75rem;font-weight:600;color:var(--text-muted)">' + voice.desc + "</span>";
+          btn.addEventListener("click", function () {
+            selectedVoice = voice.id;
+            document.querySelectorAll(".voice-btn").forEach(function (b) {
+              b.classList.toggle("selected", b.dataset.voice === selectedVoice);
+            });
+          });
+          voiceGrid.appendChild(btn);
+        });
+      }
+
+      function enableVoiceButtons(enabled) {
+        document.querySelectorAll(".voice-btn").forEach(function (b) {
+          b.disabled = !enabled;
+        });
+      }
+
+      function makeDistortionCurve(amount) {
+        const samples = 256;
+        const curve = new Float32Array(samples);
+        for (let i = 0; i < samples; i++) {
+          const x = (i * 2) / samples - 1;
+          curve[i] = ((Math.PI + amount) * x) / (Math.PI + amount * Math.abs(x));
+        }
+        return curve;
+      }
+
+      function connectEffectChain(ctx, source, voiceId) {
+        const destination = ctx.destination;
+        let last = source;
+
+        if (voiceId === "normal") {
+          last.connect(destination);
+          return last;
+        }
+
+        if (voiceId === "chipmunk") {
+          source.playbackRate.value = 1.75;
+          last.connect(destination);
+          return last;
+        }
+
+        if (voiceId === "helium") {
+          source.playbackRate.value = 2.2;
+          last.connect(destination);
+          return last;
+        }
+
+        if (voiceId === "giant") {
+          source.playbackRate.value = 0.55;
+          last.connect(destination);
+          return last;
+        }
+
+        if (voiceId === "monster") {
+          source.playbackRate.value = 0.45;
+          const low = ctx.createBiquadFilter();
+          low.type = "lowpass";
+          low.frequency.value = 900;
+          const shaper = ctx.createWaveShaper();
+          shaper.curve = makeDistortionCurve(80);
+          last.connect(low);
+          low.connect(shaper);
+          shaper.connect(destination);
+          activeNodes.push(low, shaper);
+          return shaper;
+        }
+
+        if (voiceId === "slowmo") {
+          source.playbackRate.value = 0.5;
+          last.connect(destination);
+          return last;
+        }
+
+        if (voiceId === "robot") {
+          const shaper = ctx.createWaveShaper();
+          shaper.curve = makeDistortionCurve(50);
+          const band = ctx.createBiquadFilter();
+          band.type = "bandpass";
+          band.frequency.value = 1200;
+          band.Q.value = 8;
+          last.connect(shaper);
+          shaper.connect(band);
+          band.connect(destination);
+          activeNodes.push(shaper, band);
+          return band;
+        }
+
+        if (voiceId === "alien") {
+          source.playbackRate.value = 1.15;
+          const delay = ctx.createDelay(0.05);
+          delay.delayTime.value = 0.012;
+          alienLfo = ctx.createOscillator();
+          alienLfo.type = "sine";
+          alienLfo.frequency.value = 8;
+          const lfoGain = ctx.createGain();
+          lfoGain.gain.value = 0.008;
+          alienLfo.connect(lfoGain);
+          lfoGain.connect(delay.delayTime);
+          alienLfo.start();
+          last.connect(delay);
+          delay.connect(destination);
+          activeNodes.push(delay, lfoGain);
+          return delay;
+        }
+
+        if (voiceId === "underwater") {
+          const low = ctx.createBiquadFilter();
+          low.type = "lowpass";
+          low.frequency.value = 600;
+          const wet = ctx.createGain();
+          wet.gain.value = 0.85;
+          last.connect(low);
+          low.connect(wet);
+          wet.connect(destination);
+          activeNodes.push(low, wet);
+          return wet;
+        }
+
+        if (voiceId === "echo") {
+          const dry = ctx.createGain();
+          dry.gain.value = 0.7;
+          const wet = ctx.createGain();
+          wet.gain.value = 0.45;
+          const delay1 = ctx.createDelay(1);
+          delay1.delayTime.value = 0.25;
+          const delay2 = ctx.createDelay(1);
+          delay2.delayTime.value = 0.5;
+          const feedback = ctx.createGain();
+          feedback.gain.value = 0.35;
+
+          last.connect(dry);
+          dry.connect(destination);
+          last.connect(delay1);
+          delay1.connect(wet);
+          delay1.connect(feedback);
+          feedback.connect(delay1);
+          wet.connect(destination);
+          last.connect(delay2);
+          delay2.connect(wet);
+
+          activeNodes.push(dry, wet, delay1, delay2, feedback);
+          return wet;
+        }
+
+        last.connect(destination);
+        return last;
+      }
+
+      async function decodeRecording(blob) {
+        const ctx = getAudioContext();
+        const arrayBuffer = await blob.arrayBuffer();
+        audioBuffer = await ctx.decodeAudioData(arrayBuffer);
+      }
+
+      async function startRecording() {
+        stopPlayback();
+
+        try {
+          const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+          const ctx = getAudioContext();
+          if (ctx.state === "suspended") await ctx.resume();
+
+          recordedChunks = [];
+          mediaRecorder = new MediaRecorder(stream);
+
+          mediaRecorder.ondataavailable = function (e) {
+            if (e.data.size > 0) recordedChunks.push(e.data);
+          };
+
+          mediaRecorder.onstop = async function () {
+            stream.getTracks().forEach(function (t) { t.stop(); });
+            clearInterval(timerInterval);
+            timerInterval = null;
+            timerEl.hidden = true;
+            isRecording = false;
+            micBtn.classList.remove("recording");
+            micBtn.textContent = "🎤";
+
+            if (recordedChunks.length === 0) {
+              setStatus("Hmm, nothing recorded. Try again!", "hint");
+              return;
+            }
+
+            try {
+              const blob = new Blob(recordedChunks, { type: "audio/webm" });
+              await decodeRecording(blob);
+              setStatus("Nice! Pick a voice and hit Play! 🎉", "ready");
+              enableVoiceButtons(true);
+              playBtn.disabled = false;
+              againBtn.disabled = false;
+            } catch (_) {
+              setStatus("Could not load your recording. Try again!", "hint");
+            }
+          };
+
+          mediaRecorder.start(100);
+          isRecording = true;
+          recordStart = Date.now();
+          micBtn.classList.add("recording");
+          micBtn.textContent = "⏹";
+          timerEl.hidden = false;
+          timerEl.textContent = "0:00";
+          setStatus("Recording… say something funny!", "recording");
+
+          timerInterval = setInterval(function () {
+            const elapsed = Date.now() - recordStart;
+            timerEl.textContent = formatTime(elapsed);
+            if (elapsed >= MAX_SECONDS * 1000) stopRecording();
+          }, 200);
+        } catch (err) {
+          if (err.name === "NotAllowedError") {
+            setStatus("Microphone blocked! Ask a grown-up to allow the mic.", "hint");
+          } else {
+            setStatus("Could not use the microphone. Try a different browser.", "hint");
+          }
+        }
+      }
+
+      function stopRecording() {
+        if (mediaRecorder && mediaRecorder.state !== "inactive") {
+          mediaRecorder.stop();
+        }
+      }
+
+      async function playRecording() {
+        if (!audioBuffer) return;
+
+        stopPlayback();
+        const ctx = getAudioContext();
+        if (ctx.state === "suspended") await ctx.resume();
+
+        const source = ctx.createBufferSource();
+        source.buffer = audioBuffer;
+        connectEffectChain(ctx, source, selectedVoice);
+
+        source.onended = function () {
+          stopPlayback();
+        };
+
+        source.start(0);
+        activeNodes.push(source);
+        playBtn.disabled = true;
+        stopBtn.disabled = false;
+        setStatus("Playing your funny voice! 🔊", "ready");
+      }
+
+      function resetRecording() {
+        stopPlayback();
+        audioBuffer = null;
+        recordedChunks = [];
+        enableVoiceButtons(false);
+        playBtn.disabled = true;
+        againBtn.disabled = true;
+        setStatus("Tap the microphone and say something funny!", "hint");
+      }
+
+      micBtn.addEventListener("click", function () {
+        if (isRecording) {
+          stopRecording();
+        } else {
+          startRecording();
+        }
+      });
+
+      playBtn.addEventListener("click", playRecording);
+      stopBtn.addEventListener("click", function () {
+        stopPlayback();
+        setStatus("Stopped. Hit Play to hear it again!", "ready");
+      });
+      againBtn.addEventListener("click", resetRecording);
+
+      buildVoiceButtons();
+    </script>
+    <script src="../shared.js"></script>
+  </body>
+</html>
