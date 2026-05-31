@@ -6,351 +6,1117 @@
     <title>Creative Kitchen — Game Arcade</title>
     <link rel="stylesheet" href="../shared.css" />
     <style>
-      .main { max-width: 620px; }
+      .main { max-width: 680px; }
+
+      .characters {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-end;
+        gap: 0.75rem;
+        width: 100%;
+        margin-bottom: 0.75rem;
+      }
+
+      .character {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.35rem;
+        flex: 1;
+        max-width: 48%;
+      }
+
+      .character.customer { align-items: flex-end; }
+
+      .avatar-wrap {
+        display: flex;
+        align-items: flex-end;
+        justify-content: center;
+        min-height: 88px;
+        filter: drop-shadow(0 4px 12px rgba(0, 217, 255, 0.15));
+      }
+
+      .bubble {
+        background: var(--surface);
+        border: 2px solid var(--neon-blue);
+        border-radius: 14px;
+        padding: 0.55rem 0.75rem;
+        font-size: 0.85rem;
+        line-height: 1.35;
+        color: var(--text);
+        width: 100%;
+        min-height: 2.5rem;
+      }
+
+      .bubble.pop { animation: bubble-pop 0.35s cubic-bezier(0.34, 1.56, 0.64, 1); }
+
+      @keyframes bubble-pop {
+        0% { transform: scale(0.82); opacity: 0.4; }
+        70% { transform: scale(1.05); }
+        100% { transform: scale(1); opacity: 1; }
+      }
+
+      .character.customer .bubble {
+        border-color: var(--neon-pink);
+        text-align: right;
+      }
+
+      .avatar {
+        font-size: 4rem;
+        line-height: 1;
+        display: block;
+      }
+
+      .avatar.chef-leo.stir { animation: stir-bounce 0.35s ease-in-out infinite; }
+      .avatar.chef-leo.celebrate { animation: chef-jump 0.55s cubic-bezier(0.34, 1.45, 0.64, 1); }
+      .avatar.chef-leo.shake { animation: wobble 0.45s ease; }
+      .avatar.customer.eat { animation: munch 0.28s ease 4; }
+      .avatar.customer.bounce { animation: chef-jump 0.55s cubic-bezier(0.34, 1.45, 0.64, 1); }
+      .avatar.customer.facepalm { animation: wobble 0.55s ease; }
+
+      @keyframes stir-bounce {
+        0%, 100% { transform: rotate(-10deg); }
+        50% { transform: rotate(10deg); }
+      }
+
+      @keyframes chef-jump {
+        0%, 100% { transform: translateY(0); }
+        35% { transform: translateY(-18px) rotate(-4deg); }
+        65% { transform: translateY(-6px) rotate(3deg); }
+      }
+
+      @keyframes wobble {
+        0%, 100% { transform: rotate(0); }
+        25% { transform: rotate(-6deg); }
+        75% { transform: rotate(6deg); }
+      }
+
+      @keyframes munch {
+        0%, 100% { transform: scaleY(1); }
+        45% { transform: scaleY(0.82) translateY(3px); }
+      }
+
       .stats-row {
-        display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;
-        font-weight: 600; color: var(--text-muted); font-size: 0.9rem;
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        flex-wrap: wrap;
+        font-weight: 600;
+        color: var(--text-muted);
+        font-size: 0.9rem;
+        margin-bottom: 0.75rem;
       }
+
       .stats-row span { color: var(--neon-blue); }
-      .mode-bar { display: flex; gap: 0.5rem; width: 100%; justify-content: center; flex-wrap: wrap; }
-      .mode-btn {
-        background: var(--surface-hover); border: 2px solid var(--ocean);
-        border-radius: 999px; padding: 0.5rem 1rem; font-family: inherit;
-        font-size: 0.85rem; font-weight: 700; color: var(--text-muted); cursor: pointer;
+
+      .order-card {
+        width: 100%;
+        background: var(--surface-hover);
+        border: 2px solid var(--neon-purple);
+        border-radius: var(--radius);
+        padding: 1rem;
+        text-align: center;
+        margin-bottom: 0.75rem;
       }
+
+      .order-card.slide-in { animation: order-in 0.5s cubic-bezier(0.34, 1.45, 0.64, 1); }
+
+      @keyframes order-in {
+        0% { transform: translateY(-24px) scale(0.9); opacity: 0; }
+        100% { transform: translateY(0) scale(1); opacity: 1; }
+      }
+
+      .order-card h3 {
+        color: var(--neon-blue);
+        font-size: 1.25rem;
+        margin-bottom: 0.35rem;
+      }
+
+      .order-dish { display: flex; justify-content: center; margin: 0.25rem 0; }
+      .order-dish.wiggle .dish-plate { animation: dish-wiggle 0.55s ease; }
+
+      @keyframes dish-wiggle {
+        0%, 100% { transform: rotate(0); }
+        25% { transform: rotate(-8deg) scale(1.06); }
+        75% { transform: rotate(8deg) scale(1.06); }
+      }
+
+      .order-meta {
+        display: flex;
+        gap: 0.4rem;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-bottom: 0.5rem;
+      }
+
+      .tag {
+        background: var(--surface);
+        border: 1px solid var(--ocean);
+        border-radius: 999px;
+        padding: 0.15rem 0.55rem;
+        font-size: 0.75rem;
+        color: var(--text-muted);
+      }
+
+      .checklist {
+        display: flex;
+        gap: 0.35rem;
+        justify-content: center;
+        flex-wrap: wrap;
+        align-items: flex-end;
+      }
+
+      .check-item {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.2rem;
+        opacity: 0.45;
+        transition: opacity 0.2s, transform 0.2s;
+      }
+
+      .check-item.done {
+        opacity: 1;
+        animation: check-pop 0.45s cubic-bezier(0.34, 1.55, 0.64, 1);
+      }
+
+      @keyframes check-pop {
+        0% { transform: scale(0.6); }
+        60% { transform: scale(1.12); }
+        100% { transform: scale(1); }
+      }
+
+      .check-item .tool-hint { font-size: 0.6rem; color: var(--text-muted); font-weight: 700; }
+
+      .ing-chip {
+        display: inline-flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        border: 2px solid;
+        border-radius: 10px;
+        padding: 0.2rem 0.35rem;
+        min-width: 46px;
+        line-height: 1.1;
+        font-weight: 800;
+      }
+
+      .ing-chip--sm { min-width: 38px; padding: 0.15rem 0.25rem; }
+      .ing-chip--sm .ing-chip__emoji { font-size: 1.05rem; }
+      .ing-chip--sm .ing-chip__name { font-size: 0.45rem; }
+
+      .ing-chip__emoji { font-size: 1.35rem; line-height: 1; }
+      .ing-chip__name { font-size: 0.48rem; font-weight: 600; opacity: 0.85; max-width: 52px; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+      .ingredient {
+        border: 2px solid var(--ocean);
+        border-radius: var(--radius);
+        background: var(--surface);
+        cursor: pointer;
+        padding: 0.2rem;
+        transition: transform 0.12s cubic-bezier(0.34, 1.45, 0.64, 1), box-shadow 0.12s;
+      }
+
+      .ingredient:hover { transform: scale(1.07); box-shadow: 0 4px 14px rgba(0, 217, 255, 0.2); }
+      .ingredient.selected {
+        transform: scale(1.1);
+        box-shadow: 0 0 0 3px rgba(57, 255, 20, 0.35);
+      }
+
+      .holding-bar {
+        width: 100%;
+        text-align: center;
+        padding: 0.55rem;
+        border-radius: var(--radius);
+        border: 2px dashed var(--neon-pink);
+        background: rgba(255, 45, 170, 0.06);
+        font-size: 0.88rem;
+        color: var(--text-muted);
+        margin-bottom: 0.75rem;
+        min-height: 2.85rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+      }
+
+      .holding-bar.has-item {
+        border-style: solid;
+        color: var(--text);
+        font-weight: 600;
+      }
+
+      .kitchen-grid { display: flex; flex-direction: column; gap: 0.75rem; width: 100%; }
+
+      .pantry, .tools-section {
+        background: var(--surface-hover);
+        border-radius: var(--radius);
+        padding: 0.85rem;
+      }
+
+      .pantry { border: 2px solid var(--ocean); }
+      .tools-section { border: 2px solid var(--neon-purple); }
+
+      .pantry h4, .tools-section h4 {
+        text-align: center;
+        color: var(--purple);
+        margin-bottom: 0.5rem;
+        font-size: 0.95rem;
+      }
+
+      .cat-tabs {
+        display: flex;
+        gap: 0.3rem;
+        flex-wrap: wrap;
+        justify-content: center;
+        margin-bottom: 0.5rem;
+      }
+
+      .cat-tab {
+        padding: 0.25rem 0.55rem;
+        border-radius: 999px;
+        border: 2px solid var(--ocean);
+        background: var(--surface);
+        font-size: 0.7rem;
+        font-weight: 700;
+        cursor: pointer;
+        font-family: inherit;
+        color: var(--text-muted);
+      }
+
+      .cat-tab.active { border-color: var(--neon-blue); color: var(--neon-blue); }
+
+      .ingredients {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.4rem;
+        justify-content: center;
+        max-height: 140px;
+        overflow-y: auto;
+      }
+
+      .tools {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(88px, 1fr));
+        gap: 0.5rem;
+      }
+
+      .tool {
+        border: 2px solid var(--ocean);
+        border-radius: var(--radius);
+        background: var(--surface);
+        padding: 0.5rem 0.35rem;
+        text-align: center;
+        cursor: pointer;
+        min-height: 92px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.25rem;
+        transition: border-color 0.15s, transform 0.12s cubic-bezier(0.34, 1.45, 0.64, 1);
+      }
+
+      .tool:hover { border-color: var(--neon-blue); transform: scale(1.04); }
+      .tool.highlight { border-color: var(--neon-green); box-shadow: 0 0 14px rgba(57, 255, 20, 0.3); animation: tool-pulse 1s ease infinite; }
+
+      @keyframes tool-pulse {
+        0%, 100% { box-shadow: 0 0 8px rgba(57, 255, 20, 0.2); }
+        50% { box-shadow: 0 0 16px rgba(57, 255, 20, 0.45); }
+      }
+
+      .tool.cooking { border-color: var(--neon-pink); animation: pulse-cook 0.75s ease infinite; }
+      .tool.sizzle { animation: sizzle-shake 0.22s ease infinite; }
+      .tool.blend-spin .tool-icon { animation: spin-blend 0.45s linear infinite; }
+      .tool.oven-glow { box-shadow: 0 0 22px rgba(255, 120, 0, 0.55); }
+
+      .tool.wrong { animation: tool-wrong 0.45s ease; }
+
+      @keyframes sizzle-shake {
+        0%, 100% { transform: translateX(0); }
+        50% { transform: translateX(3px); }
+      }
+
+      @keyframes spin-blend { to { transform: rotate(360deg); } }
+
+      @keyframes tool-wrong {
+        0%, 100% { transform: translateX(0); }
+        25%, 75% { transform: translateX(-6px); border-color: var(--neon-pink); }
+        50% { transform: translateX(6px); }
+      }
+
+      @keyframes pulse-cook {
+        0%, 100% { box-shadow: 0 0 8px rgba(255, 45, 170, 0.3); }
+        50% { box-shadow: 0 0 20px rgba(255, 45, 170, 0.55); }
+      }
+
+      .tool-name { font-size: 0.62rem; font-weight: 700; color: var(--text-muted); }
+      .tool-items { display: flex; flex-wrap: wrap; gap: 0.15rem; justify-content: center; min-height: 1.5rem; }
+
+      .tool-item-pop { animation: item-plop 0.4s cubic-bezier(0.34, 1.55, 0.64, 1); display: inline-block; }
+
+      @keyframes item-plop {
+        0% { transform: scale(0) translateY(-10px); opacity: 0; }
+        65% { transform: scale(1.2) translateY(0); }
+        100% { transform: scale(1); opacity: 1; }
+      }
+
+      .cook-progress {
+        width: 100%;
+        height: 8px;
+        background: var(--surface);
+        border-radius: 999px;
+        overflow: hidden;
+        margin: 0.75rem 0 0.25rem;
+        display: none;
+      }
+
+      .cook-progress.visible { display: block; }
+
+      .cook-progress-fill {
+        height: 100%;
+        width: 0%;
+        background: linear-gradient(90deg, var(--neon-blue), var(--neon-pink));
+        border-radius: 999px;
+        transition: width 0.15s linear;
+      }
+
+      .fact-popup {
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.65);
+        display: none;
+        align-items: center;
+        justify-content: center;
+        z-index: 200;
+        padding: 1rem;
+      }
+
+      .fact-popup.open { display: flex; }
+
+      .fact-card {
+        background: var(--surface);
+        border: 2px solid var(--neon-blue);
+        border-radius: var(--radius);
+        padding: 1.25rem;
+        max-width: 340px;
+        text-align: center;
+      }
+
+      .fact-card h4 { color: var(--neon-blue); margin-bottom: 0.5rem; }
+      .fact-card p { color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem; }
+
+      .mode-bar {
+        display: flex;
+        gap: 0.5rem;
+        justify-content: center;
+        flex-wrap: wrap;
+        margin-top: 0.75rem;
+      }
+
+      .mode-btn {
+        background: var(--surface-hover);
+        border: 2px solid var(--ocean);
+        border-radius: 999px;
+        padding: 0.45rem 0.9rem;
+        font-family: inherit;
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: var(--text-muted);
+        cursor: pointer;
+      }
+
       .mode-btn.active {
         background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple));
-        color: var(--text); border-color: transparent;
+        color: var(--text);
+        border-color: transparent;
       }
-      .recipe-card, .creative-banner {
-        width: 100%; border-radius: var(--radius); padding: 1rem; text-align: center;
+
+      .mode-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+      .hint { color: var(--text-muted); font-size: 0.82rem; text-align: center; margin-top: 0.35rem; }
+
+      .fx-layer {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 160;
+        overflow: hidden;
       }
-      .recipe-card {
-        background: var(--surface-hover); border: 2px solid var(--neon-purple);
+
+      .fly-chip {
+        position: fixed;
+        z-index: 161;
+        pointer-events: none;
       }
-      .recipe-card.hidden { display: none; }
-      .creative-banner {
-        background: rgba(57, 255, 20, 0.08); border: 2px solid var(--neon-green); display: none;
+
+      .fx-particle-wrap {
+        position: fixed;
+        pointer-events: none;
+        z-index: 161;
+        animation: particle-up 1s ease-out forwards;
       }
-      .creative-banner.visible { display: block; }
-      .recipe-card h3, .creative-banner h3 { color: var(--neon-blue); margin-bottom: 0.25rem; }
-      .recipe-meta {
-        display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap;
-        font-size: 0.8rem; color: var(--text-muted); margin-bottom: 0.5rem;
+
+      @keyframes particle-up {
+        0% { opacity: 1; transform: translateY(0) scale(1); }
+        100% { opacity: 0; transform: translateY(-48px) scale(0.5); }
       }
-      .tag {
-        background: var(--surface); border: 1px solid var(--ocean);
-        border-radius: 999px; padding: 0.15rem 0.55rem;
+
+      .fx-label {
+        position: fixed;
+        pointer-events: none;
+        font-weight: 800;
+        font-size: 1.05rem;
+        z-index: 161;
+        text-shadow: 0 0 8px rgba(0, 217, 255, 0.6);
+        animation: label-float 1.1s ease-out forwards;
       }
-      .steps {
-        display: flex; gap: 0.35rem; justify-content: center; margin: 0.75rem 0;
+
+      @keyframes label-float {
+        0% { opacity: 1; transform: translateY(0); }
+        100% { opacity: 0; transform: translateY(-36px); }
       }
-      .step-dot {
-        padding: 0.25rem 0.6rem; border-radius: 999px; font-size: 0.75rem; font-weight: 700;
-        background: var(--surface); border: 2px solid var(--ocean); color: var(--text-muted);
+
+      .serve-flash { animation: serve-flash 0.6s ease; }
+
+      @keyframes serve-flash {
+        0% { box-shadow: 0 0 0 rgba(57, 255, 20, 0); }
+        40% { box-shadow: 0 0 28px rgba(57, 255, 20, 0.45); }
+        100% { box-shadow: 0 0 0 rgba(57, 255, 20, 0); }
       }
-      .step-dot.done { border-color: var(--neon-green); color: var(--neon-green); }
-      .step-dot.active { border-color: var(--neon-pink); color: var(--neon-pink); }
-      .checklist, .recipe-needs {
-        display: flex; gap: 0.4rem; justify-content: center; flex-wrap: wrap;
+
+
+      .dish-plate {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.15rem;
       }
-      .need-item {
-        font-size: 1.5rem; padding: 0.25rem 0.4rem; border-radius: 8px;
-        border: 2px solid transparent; opacity: 0.45;
-      }
-      .need-item.got { opacity: 1; border-color: var(--neon-green); background: rgba(57,255,20,0.1); }
-      .kitchen { display: flex; flex-direction: column; gap: 1rem; width: 100%; }
-      .pantry {
-        background: var(--surface-hover); border: 2px solid var(--ocean);
-        border-radius: var(--radius); padding: 1rem;
-      }
-      .cat-tabs {
-        display: flex; gap: 0.35rem; flex-wrap: wrap; justify-content: center; margin-bottom: 0.75rem;
-      }
-      .cat-tab {
-        padding: 0.3rem 0.65rem; border-radius: 999px; border: 2px solid var(--ocean);
-        background: var(--surface); font-size: 0.75rem; font-weight: 700;
-        cursor: pointer; font-family: inherit; color: var(--text-muted);
-      }
-      .cat-tab.active {
-        border-color: var(--neon-blue); color: var(--neon-blue);
-      }
-      .ingredients {
-        display: flex; flex-wrap: wrap; gap: 0.45rem; justify-content: center;
-        max-height: 160px; overflow-y: auto;
-      }
-      .ingredient {
-        width: 54px; min-height: 54px; border: 2px solid var(--ocean); border-radius: var(--radius);
-        background: var(--surface); cursor: pointer; display: flex; flex-direction: column;
-        align-items: center; justify-content: center; padding: 0.2rem;
-      }
-      .ingredient:hover { border-color: var(--neon-pink); transform: scale(1.04); }
-      .ingredient .emo { font-size: 1.4rem; line-height: 1; }
-      .ingredient .lbl { font-size: 0.55rem; color: var(--text-muted); text-align: center; line-height: 1.1; }
-      .workstation {
-        display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;
-      }
-      @media (max-width: 520px) { .workstation { grid-template-columns: 1fr; } }
-      .bowl-area, .cook-area {
-        background: var(--surface-hover); border: 2px solid var(--ocean);
-        border-radius: var(--radius); padding: 1rem;
-      }
-      .bowl-area h4, .cook-area h4 { color: var(--purple); text-align: center; margin-bottom: 0.6rem; font-size: 0.95rem; }
-      .bowl {
-        min-height: 90px; border: 3px dashed var(--neon-blue); border-radius: 50%;
-        display: flex; flex-wrap: wrap; align-items: center; justify-content: center;
-        gap: 0.3rem; padding: 0.75rem; margin-bottom: 0.6rem;
-      }
-      .bowl-item {
-        font-size: 1.5rem; cursor: pointer; padding: 0.1rem;
-        border-radius: 6px; border: 2px solid transparent;
-      }
-      .bowl-item:hover { border-color: var(--neon-pink); }
-      .cook-btns { display: flex; gap: 0.4rem; flex-wrap: wrap; justify-content: center; }
-      .cook-btn {
-        padding: 0.45rem 0.7rem; border-radius: var(--radius); border: 2px solid var(--ocean);
-        background: var(--surface); font-family: inherit; font-size: 0.85rem;
-        font-weight: 700; cursor: pointer; color: var(--text);
-      }
-      .cook-btn.selected { border-color: var(--neon-green); background: rgba(57,255,20,0.12); }
-      .kitchen-actions { display: flex; gap: 0.5rem; justify-content: center; flex-wrap: wrap; margin-top: 0.75rem; }
-      .hint { color: var(--text-muted); font-size: 0.85rem; text-align: center; }
-      .creative-picks { display: flex; gap: 0.4rem; flex-wrap: wrap; justify-content: center; margin-top: 0.5rem; }
-      .creative-picks select {
-        background: var(--surface-hover); border: 2px solid var(--neon-purple);
-        border-radius: var(--radius); color: var(--text); font-family: inherit;
-        padding: 0.4rem 0.6rem; font-size: 0.85rem;
-      }
+
+      .dish-emoji { font-size: 2rem; line-height: 1; }
+      .dish-name { font-size: 0.75rem; font-weight: 700; color: var(--neon-blue); max-width: 140px; text-align: center; }
+      .tool-emoji { font-size: 1.75rem; line-height: 1; }
+      .fx-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
     </style>
   </head>
   <body>
     <div class="app">
       <main class="main">
         <a class="back-link" href="../index.html">← Back to Arcade</a>
-        <header class="header"><div class="game-card-icon">👨‍🍳</div><h1>Creative Kitchen</h1></header>
+        <header class="header">
+          <div class="game-card-icon" aria-hidden="true">👨‍🍳</div>
+          <h1>Creative Kitchen</h1>
+        </header>
+
         <div class="game-panel">
-          <div class="stats-row">
-            <div>Dishes: <span id="score">0</span></div>
-            <div>Chef level: <span id="level">1</span></div>
-            <div>⭐ <span id="stars">0</span></div>
-          </div>
-          <div class="mode-bar">
-            <button class="mode-btn active" type="button" id="recipeModeBtn">📋 Recipe mode</button>
-            <button class="mode-btn" type="button" id="creativeModeBtn">✨ Creative mode</button>
-            <button class="mode-btn" type="button" id="shuffleBtn">🎲 Random recipe</button>
-          </div>
-
-          <div class="recipe-card" id="recipeCard">
-            <h3 id="recipeName">Recipe</h3>
-            <div class="recipe-meta" id="recipeMeta"></div>
-            <p class="hint" id="recipeTip"></p>
-            <div class="steps" id="steps"></div>
-            <div class="checklist" id="recipeNeeds"></div>
-          </div>
-
-          <div class="creative-banner" id="creativeBanner">
-            <h3>Chef Leo-style creative kitchen!</h3>
-            <p class="hint">Pick a dish type, grab anything from the pantry, choose how to cook it, and serve your invention.</p>
-            <div class="creative-picks">
-              <select id="dishType">
-                <option value="surprise">🎁 Surprise dish</option>
-                <option value="soup">🍲 Soup</option>
-                <option value="salad">🥗 Salad</option>
-                <option value="sandwich">🥪 Sandwich</option>
-                <option value="dessert">🍰 Dessert</option>
-                <option value="drink">🥤 Drink</option>
-                <option value="pizza">🍕 Pizza</option>
-              </select>
+          <div class="characters">
+            <div class="character chef">
+              <div class="avatar-wrap" id="leoWrap"></div>
+              <div class="bubble" id="leoSays">Welcome to Chef Leo's kitchen! Pick an ingredient, then tap the right tool.</div>
+            </div>
+            <div class="character customer">
+              <div class="bubble" id="customerSays">I'd love something tasty from around the world!</div>
+              <div class="avatar-wrap" id="customerWrap"></div>
             </div>
           </div>
 
-          <div class="kitchen">
+          <div class="stats-row">
+            <div>Meals served: <span id="score">0</span></div>
+            <div>Chef level: <span id="level">1</span></div>
+            <div>Stars: <span id="stars">0</span></div>
+          </div>
+
+          <div class="order-card" id="orderCard">
+            <div class="order-meta" id="orderMeta"></div>
+            <div class="order-dish" id="orderDish"></div>
+            <h3 id="recipeName">Chocolate Chip Cookies</h3>
+            <p class="hint" id="recipeTip"></p>
+            <div class="checklist" id="checklist"></div>
+          </div>
+
+          <div class="holding-bar" id="holdingBar">Tap an ingredient from the pantry</div>
+
+          <div class="kitchen-grid">
             <div class="pantry">
-              <h4 style="text-align:center;color:var(--purple);margin-bottom:0.5rem">Pantry</h4>
+              <h4>Pantry — ingredients from around the world</h4>
               <div class="cat-tabs" id="catTabs"></div>
               <div class="ingredients" id="pantry"></div>
             </div>
-            <div class="workstation">
-              <div class="bowl-area">
-                <h4>🥣 Mixing bowl <span class="hint">(tap item to remove)</span></h4>
-                <div class="bowl" id="bowl"></div>
-                <button class="btn btn-secondary" type="button" id="clearBtn" style="width:100%">Clear bowl</button>
-              </div>
-              <div class="cook-area">
-                <h4>🔥 How to cook</h4>
-                <div class="cook-btns" id="cookBtns"></div>
-                <p class="hint" id="cookHint" style="margin-top:0.5rem">Pick a cooking style</p>
-              </div>
+            <div class="tools-section">
+              <h4>Kitchen tools — tap where each ingredient goes</h4>
+              <div class="tools" id="tools"></div>
+              <div class="cook-progress" id="cookProgress"><div class="cook-progress-fill" id="cookFill"></div></div>
             </div>
           </div>
 
-          <div class="kitchen-actions">
-            <button class="btn" type="button" id="actionBtn">Mix ingredients</button>
+          <p class="status" id="status"></p>
+          <button class="btn" type="button" id="cookBtn" style="display:none;margin-top:0.5rem">Cook it up!</button>
+
+          <div class="mode-bar">
+            <button class="mode-btn active" type="button" id="recipeModeBtn">Recipe orders</button>
+            <button class="mode-btn" type="button" id="creativeModeBtn" disabled title="Serve 4 recipes first!">Creative kitchen</button>
+            <button class="mode-btn" type="button" id="skipBtn">Next order</button>
+            <button class="mode-btn" type="button" id="soundBtn" aria-pressed="true">Sound on</button>
           </div>
-          <p class="status" id="status">Add ingredients, mix, then cook and serve!</p>
+          <p class="hint" id="modeHint">Follow the customer's order — Leo will help you!</p>
         </div>
       </main>
     </div>
+
+    <div class="fx-layer" id="fxLayer" aria-hidden="true"></div>
+
+    <div class="fact-popup" id="factPopup" role="dialog" aria-modal="true">
+      <div class="fact-card">
+        <div id="factChip"></div>
+        <h4 id="factTitle">Did you know?</h4>
+        <p id="factText"></p>
+        <button class="btn" type="button" id="factOk">Got it!</button>
+      </div>
+    </div>
+
+    <script src="kitchen-visuals.js"></script>
     <script>
-      var INGREDIENTS = [
-        { e: "🌾", n: "Flour", c: "base" }, { e: "🍞", n: "Bread", c: "base" }, { e: "🍚", n: "Rice", c: "base" },
-        { e: "🌮", n: "Tortilla", c: "base" }, { e: "🍝", n: "Pasta", c: "base" }, { e: "🥔", n: "Potato", c: "base" },
-        { e: "🥚", n: "Egg", c: "dairy" }, { e: "🥛", n: "Milk", c: "dairy" }, { e: "🧈", n: "Butter", c: "dairy" },
-        { e: "🧀", n: "Cheese", c: "dairy" }, { e: "🍦", n: "Cream", c: "dairy" }, { e: "🫕", n: "Yogurt", c: "dairy" },
-        { e: "🍗", n: "Chicken", c: "protein" }, { e: "🥩", n: "Beef", c: "protein" }, { e: "🐟", n: "Fish", c: "protein" },
-        { e: "🫘", n: "Beans", c: "protein" }, { e: "🍤", n: "Shrimp", c: "protein" }, { e: "🥓", n: "Bacon", c: "protein" },
-        { e: "🍅", n: "Tomato", c: "veg" }, { e: "🥬", n: "Lettuce", c: "veg" }, { e: "🧅", n: "Onion", c: "veg" },
-        { e: "🥕", n: "Carrot", c: "veg" }, { e: "🌽", n: "Corn", c: "veg" }, { e: "🫑", n: "Pepper", c: "veg" },
-        { e: "🥒", n: "Pickle", c: "veg" }, { e: "🍄", n: "Mushroom", c: "veg" }, { e: "🫒", n: "Olive", c: "veg" },
-        { e: "🍎", n: "Apple", c: "fruit" }, { e: "🍌", n: "Banana", c: "fruit" }, { e: "🍓", n: "Strawberry", c: "fruit" },
-        { e: "🍇", n: "Grapes", c: "fruit" }, { e: "🍊", n: "Orange", c: "fruit" }, { e: "🍑", n: "Peach", c: "fruit" },
-        { e: "🍍", n: "Pineapple", c: "fruit" }, { e: "🥭", n: "Mango", c: "fruit" }, { e: "🍋", n: "Lemon", c: "fruit" },
-        { e: "🍫", n: "Chocolate", c: "sweet" }, { e: "🍯", n: "Honey", c: "sweet" }, { e: "🍬", n: "Candy", c: "sweet" },
-        { e: "🧁", n: "Frosting", c: "sweet" }, { e: "🍪", n: "Cookie", c: "sweet" },
-        { e: "🧂", n: "Salt", c: "spice" }, { e: "🌶️", n: "Chili", c: "spice" }, { e: "🧄", n: "Garlic", c: "spice" },
-        { e: "🍃", n: "Basil", c: "spice" }, { e: "🫚", n: "Ginger", c: "spice" },
-        { e: "🥜", n: "Peanut", c: "top" }, { e: "🌰", n: "Nut", c: "top" }, { e: "🥨", n: "Crunch", c: "top" },
-        { e: "🧊", n: "Ice", c: "top" }, { e: "🫐", n: "Berry", c: "top" }, { e: "⭐", n: "Sprinkles", c: "top" },
+      var KV = window.KitchenVisuals;
+      var INGREDIENTS = KV.INGREDIENTS;
+      var TOOLS = KV.TOOLS;
+      var RECIPES = KV.RECIPES;
+
+      var LEO_WIN = [
+        "Magnifique! You nailed it!",
+        "That is chef-quality cooking!",
+        "Leo is doing a happy dance!",
+        "Perfect — the customer loves it!",
+        "World-class kitchen skills!",
+      ];
+      var LEO_OOPS = [
+        "Hmm, that ingredient goes somewhere else!",
+        "Not quite — check the recipe list!",
+        "Try a different tool, chef!",
+        "Oops! Leo says double-check the order.",
+      ];
+      var LEO_COOK = [
+        "Sizzling… smelling amazing!",
+        "Almost ready… do not peek!",
+        "The kitchen is working its magic!",
       ];
 
-      var CATEGORIES = [
-        { id: "all", label: "🌈 All" },
-        { id: "base", label: "🍞 Base" },
-        { id: "protein", label: "🍗 Protein" },
-        { id: "veg", label: "🥬 Veggies" },
-        { id: "fruit", label: "🍎 Fruit" },
-        { id: "dairy", label: "🧀 Dairy" },
-        { id: "sweet", label: "🍬 Sweet" },
-        { id: "spice", label: "🌶️ Spice" },
-        { id: "top", label: "✨ Toppings" },
-      ];
+      var mode = "recipe";
+      var recipeIdx = 0;
+      var recipeDeck = [];
+      var recipeDeckPos = 0;
+      var cat = "all";
+      var held = null;
+      var stepDone = [];
+      var toolItems = {};
+      var dishes = 0;
+      var stars = 0;
+      var level = 1;
+      var cooking = false;
+      var seenFacts = {};
+      var creativeUnlocked = false;
+      var customerVariant = 0;
+      var cookParticleTimer = null;
 
-      var COOK_METHODS = [
-        { id: "oven", label: "🔥 Oven bake" },
-        { id: "stove", label: "🍳 Stove fry" },
-        { id: "boil", label: "♨️ Boil" },
-        { id: "grill", label: "🥙 Grill" },
-        { id: "chill", label: "❄️ Chill" },
-        { id: "blend", label: "🌀 Blend" },
-      ];
+      TOOLS.forEach(function (t) { toolItems[t.id] = []; });
 
-      var RECIPES = [
-        { name: "Chocolate Chip Cookies", region: "🇺🇸 USA", diff: "Easy", cook: "oven", tip: "Butter makes them chewy!", needs: ["🌾","🥚","🍫","🧈","🍯"] },
-        { name: "Strawberry Smoothie", region: "🇺🇸 USA", diff: "Easy", cook: "blend", tip: "Add ice to make it frosty!", needs: ["🍓","🥛","🍌","🧊","🍯"] },
-        { name: "Margherita Pizza", region: "🇮🇹 Italy", diff: "Medium", cook: "oven", tip: "Basil goes on last!", needs: ["🌾","🍅","🧀","🍃","🫒"] },
-        { name: "Pancake Stack", region: "🇺🇸 USA", diff: "Easy", cook: "stove", tip: "Flip when bubbles pop!", needs: ["🌾","🥚","🥛","🍯","🧈"] },
-        { name: "Rainbow Fruit Salad", region: "🌈 Anywhere", diff: "Easy", cook: "chill", tip: "Use lots of colors!", needs: ["🍎","🍇","🍊","🍌","🍓","🍍"] },
-        { name: "Grilled Cheese", region: "🇺🇸 USA", diff: "Easy", cook: "stove", tip: "Low heat = melty cheese!", needs: ["🍞","🧀","🧈"] },
-        { name: "Veggie Tacos", region: "🇲🇽 Mexico", diff: "Medium", cook: "grill", tip: "Squeeze lime at the end!", needs: ["🌮","🥬","🍅","🧀","🌶️","🍋"] },
-        { name: "Chicken Stir-Fry", region: "🇨🇳 China", diff: "Medium", cook: "stove", tip: "Keep the pan hot!", needs: ["🍗","🫑","🥕","🧅","🍚","🫚"] },
-        { name: "Tomato Pasta", region: "🇮🇹 Italy", diff: "Easy", cook: "boil", tip: "Save some pasta water!", needs: ["🍝","🍅","🧄","🍃","🧀","🫒"] },
-        { name: "Berry Parfait", region: "🇫🇷 France", diff: "Easy", cook: "chill", tip: "Layer yogurt and fruit!", needs: ["🫕","🍓","🫐","🍯","⭐"] },
-        { name: "Miso Soup Bowl", region: "🇯🇵 Japan", diff: "Medium", cook: "boil", tip: "Gentle simmer, don't boil hard!", needs: ["🍄","🧅","🐟","🍃","🫚"] },
-        { name: "Loaded Baked Potato", region: "🇺🇸 USA", diff: "Medium", cook: "oven", tip: "Crispy skin is the best!", needs: ["🥔","🧀","🥓","🧈","🥒"] },
-        { name: "Honey Lemon Tea", region: "🇬🇧 UK", diff: "Easy", cook: "boil", tip: "Perfect when you're cozy!", needs: ["🍋","🍯","🧊"] },
-        { name: "Spicy Bean Burrito", region: "🇲🇽 Mexico", diff: "Medium", cook: "grill", tip: "Roll it tight!", needs: ["🌮","🫘","🍅","🧀","🌶️","🥬"] },
-        { name: "Apple Cinnamon Oat Bowl", region: "🇺🇸 USA", diff: "Easy", cook: "stove", tip: "Stir in the honey last!", needs: ["🍎","🍯","🧈","🥛","🌾"] },
-        { name: "Shrimp Fried Rice", region: "🇹🇭 Thailand", diff: "Hard", cook: "stove", tip: "Use day-old rice!", needs: ["🍚","🍤","🥕","🧅","🥚","🫚"] },
-        { name: "Peach Smoothie Bowl", region: "🇧🇷 Brazil", diff: "Easy", cook: "blend", tip: "Top with crunchy nuts!", needs: ["🍑","🍌","🥛","🥜","🍯"] },
-        { name: "Mushroom Risotto", region: "🇮🇹 Italy", diff: "Hard", cook: "stove", tip: "Stir, stir, stir!", needs: ["🍚","🍄","🧅","🧈","🧀","🍃"] },
-        { name: "Peanut Butter Sandwich", region: "🇺🇸 USA", diff: "Easy", cook: "chill", tip: "Crunchy or smooth — you pick!", needs: ["🍞","🥜","🍯","🍌"] },
-        { name: "Grilled Fish Plate", region: "🇬🇷 Greece", diff: "Medium", cook: "grill", tip: "A squeeze of lemon!", needs: ["🐟","🍋","🫒","🍅","🥔"] },
-      ];
+      document.getElementById("leoWrap").innerHTML = KV.leoAvatar();
 
-      var CREATIVE_PREFIX = ["Mystery", "Super", "Mega", "Cosmic", "Chef's", "Wild", "Rainbow", "Secret", "Golden", "Sparkle"];
-      var CREATIVE_SUFFIX = ["Surprise", "Delight", "Special", "Mix", "Feast", "Bowl", "Creation", "Masterpiece", "Platter", "Wonder"];
+      function leoEl() { return document.getElementById("leoWrap").querySelector(".avatar"); }
+      function customerEl() { return document.getElementById("customerWrap").querySelector(".avatar"); }
 
-      var bowl = [], recipeIdx = 0, mode = "recipe", cat = "all", cookMethod = null;
-      var step = 0, mixed = false, dishes = 0, stars = 0, level = 1;
-      var actionBtn = document.getElementById("actionBtn");
+      function setCustomer(variant) {
+        customerVariant = variant;
+        document.getElementById("customerWrap").innerHTML = KV.customerAvatar(variant);
+      }
+
+      setCustomer(0);
 
       function current() { return RECIPES[recipeIdx]; }
 
-      function countMap(arr) {
-        var m = {};
-        arr.forEach(function (e) { m[e] = (m[e] || 0) + 1; });
-        return m;
+      function shuffleRecipeDeck() {
+        recipeDeck = RECIPES.map(function (_, i) { return i; });
+        for (var i = recipeDeck.length - 1; i > 0; i--) {
+          var j = Math.floor(Math.random() * (i + 1));
+          var tmp = recipeDeck[i];
+          recipeDeck[i] = recipeDeck[j];
+          recipeDeck[j] = tmp;
+        }
+        recipeDeckPos = 0;
       }
 
-      function hasIngredients(have, need) {
-        var h = countMap(have), n = countMap(need);
-        for (var k in n) if ((h[k] || 0) < n[k]) return false;
-        return true;
+      function pickNextRecipeIndex() {
+        if (!recipeDeck.length || recipeDeckPos >= recipeDeck.length) shuffleRecipeDeck();
+        return recipeDeck[recipeDeckPos++];
       }
 
-      function resetCooking() {
-        step = 0; mixed = false; cookMethod = null;
-        document.querySelectorAll(".cook-btn").forEach(function (b) { b.classList.remove("selected"); });
-        updateSteps(); updateActionBtn();
+      function diffLabel(d) {
+        if (d >= 3) return "Hard";
+        if (d >= 2) return "Medium";
+        return "Easy";
       }
 
-      function setMode(next) {
-        mode = next;
-        bowl = [];
-        resetCooking();
-        document.getElementById("recipeModeBtn").classList.toggle("active", mode === "recipe");
-        document.getElementById("creativeModeBtn").classList.toggle("active", mode === "creative");
-        document.getElementById("recipeCard").classList.toggle("hidden", mode === "creative");
-        document.getElementById("creativeBanner").classList.toggle("visible", mode === "creative");
-        document.getElementById("shuffleBtn").style.display = mode === "recipe" ? "" : "none";
-        document.getElementById("status").textContent = mode === "creative"
-          ? "Invent anything — mix, cook, serve!"
-          : "Follow the recipe: add → mix → cook → serve!";
-        renderBowl(); renderRecipe();
+      function toolName(id) {
+        var t = TOOLS.find(function (x) { return x.id === id; });
+        return t ? t.name : id;
       }
 
-      function updateSteps() {
-        var el = document.getElementById("steps");
-        if (mode !== "recipe") { el.innerHTML = ""; return; }
-        var labels = ["1. Add", "2. Mix", "3. Cook", "4. Serve"];
-        el.innerHTML = labels.map(function (lbl, i) {
-          var cls = "step-dot";
-          if (i < step) cls += " done";
-          if (i === step) cls += " active";
-          return '<span class="' + cls + '">' + lbl + "</span>";
-        }).join("");
+      function sayLeo(msg) {
+        var el = document.getElementById("leoSays");
+        el.textContent = msg;
+        el.classList.remove("pop");
+        void el.offsetWidth;
+        el.classList.add("pop");
       }
 
-      function updateActionBtn() {
+      function sayCustomer(msg) {
+        var el = document.getElementById("customerSays");
+        el.textContent = msg;
+        el.classList.remove("pop");
+        void el.offsetWidth;
+        el.classList.add("pop");
+      }
+
+      function clearCharAnim(svg) {
+        if (!svg) return;
+        svg.classList.remove("stir", "celebrate", "shake", "bounce", "eat", "facepalm");
+      }
+
+      function playLeo(cls) {
+        var svg = leoEl();
+        clearCharAnim(svg);
+        void svg.offsetWidth;
+        svg.classList.add(cls);
+      }
+
+      function playCustomer(cls) {
+        var svg = customerEl();
+        clearCharAnim(svg);
+        void svg.offsetWidth;
+        svg.classList.add(cls);
+      }
+
+      function reactCustomer(happy) {
+        if (happy) {
+          playCustomer("eat");
+          setTimeout(function () { playCustomer("bounce"); }, 900);
+        } else {
+          playCustomer("facepalm");
+        }
+      }
+
+      function reactLeo(happy) {
+        playLeo(happy ? "celebrate" : "shake");
+      }
+
+      /* --- Sound (Web Audio, offline) --- */
+      var KitchenSounds = (function () {
+        var ctx = null, enabled = true, cookLoop = null;
+        function getCtx() {
+          if (!ctx) ctx = new (window.AudioContext || window.webkitAudioContext)();
+          return ctx;
+        }
+        function resume() {
+          if (!enabled) return;
+          var c = getCtx();
+          if (c.state === "suspended") c.resume();
+        }
+        function tone(freq, dur, type, vol, delay) {
+          if (!enabled) return;
+          resume();
+          var c = getCtx(), t0 = c.currentTime + (delay || 0);
+          var osc = c.createOscillator(), gain = c.createGain();
+          osc.type = type || "sine";
+          osc.frequency.setValueAtTime(freq, t0);
+          gain.gain.setValueAtTime(0.0001, t0);
+          gain.gain.exponentialRampToValueAtTime(Math.max(vol || 0.12, 0.0001), t0 + 0.015);
+          gain.gain.exponentialRampToValueAtTime(0.0001, t0 + dur);
+          osc.connect(gain);
+          gain.connect(c.destination);
+          osc.start(t0);
+          osc.stop(t0 + dur + 0.05);
+        }
+        function burstNoise(dur, vol, hp) {
+          if (!enabled) return;
+          resume();
+          var c = getCtx(), len = Math.floor(c.sampleRate * dur);
+          var buf = c.createBuffer(1, len, c.sampleRate), data = buf.getChannelData(0), last = 0;
+          for (var i = 0; i < len; i++) { last = (last + 0.04 * (Math.random() * 2 - 1)) / 1.04; data[i] = last * 4; }
+          var src = c.createBufferSource();
+          src.buffer = buf;
+          var filt = c.createBiquadFilter();
+          filt.type = "highpass";
+          filt.frequency.value = hp || 900;
+          var gain = c.createGain();
+          gain.gain.value = vol || 0.07;
+          src.connect(filt);
+          filt.connect(gain);
+          gain.connect(c.destination);
+          src.start();
+        }
+        return {
+          setEnabled: function (on) { enabled = on; if (!on) this.stopCookLoop(); },
+          isEnabled: function () { return enabled; },
+          resume: resume,
+          pick: function () { tone(640, 0.07, "sine", 0.1); tone(920, 0.05, "sine", 0.07, 0.04); },
+          plop: function () { tone(220, 0.1, "sine", 0.16); tone(140, 0.08, "triangle", 0.1, 0.03); },
+          wrong: function () { tone(220, 0.12, "sawtooth", 0.09); tone(170, 0.18, "sawtooth", 0.08, 0.1); },
+          ding: function () { tone(880, 0.45, "sine", 0.13); tone(1320, 0.35, "sine", 0.09, 0.06); tone(1760, 0.25, "sine", 0.06, 0.12); },
+          success: function () { [523, 659, 784, 988].forEach(function (f, i) { tone(f, 0.22, "sine", 0.1, i * 0.11); }); },
+          order: function () { tone(440, 0.09, "triangle", 0.09); tone(554, 0.14, "triangle", 0.11, 0.07); },
+          sizzle: function () { burstNoise(0.12, 0.05 + Math.random() * 0.03, 1400); },
+          steam: function () { burstNoise(0.2, 0.035, 500); tone(120, 0.15, "sine", 0.04); },
+          blend: function () { tone(280 + Math.random() * 80, 0.04, "square", 0.035); },
+          startCookLoop: function (kind) {
+            this.stopCookLoop();
+            if (!enabled) return;
+            cookLoop = setInterval(function () {
+              if (kind === "sizzle") KitchenSounds.sizzle();
+              else if (kind === "blend") KitchenSounds.blend();
+              else KitchenSounds.steam();
+            }, kind === "blend" ? 90 : 220);
+          },
+          stopCookLoop: function () { if (cookLoop) { clearInterval(cookLoop); cookLoop = null; } },
+        };
+      })();
+
+      function centerOf(el) {
+        var r = el.getBoundingClientRect();
+        return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+      }
+
+      function flyChip(ingId, fromEl, toEl, done) {
+        if (!fromEl || !toEl) { if (done) done(); return; }
+        var from = centerOf(fromEl), to = centerOf(toEl);
+        var el = document.createElement("div");
+        el.className = "fly-chip";
+        el.innerHTML = KV.ingChip(ingId, "ing-chip--sm");
+        el.style.left = from.x + "px";
+        el.style.top = from.y + "px";
+        el.style.transform = "translate(-50%, -50%)";
+        document.getElementById("fxLayer").appendChild(el);
+        var dx = to.x - from.x, dy = to.y - from.y;
+        el.animate([
+          { transform: "translate(-50%, -50%) scale(1.35) rotate(-10deg)", opacity: 1 },
+          { transform: "translate(calc(-50% + " + dx + "px), calc(-50% + " + dy + "px)) scale(1) rotate(8deg)", opacity: 1, offset: 0.85 },
+          { transform: "translate(calc(-50% + " + dx + "px), calc(-50% + " + (dy + 8) + "px)) scale(0.9)", opacity: 0.95 },
+        ], { duration: 480, easing: "cubic-bezier(0.34, 1.55, 0.64, 1)" }).onfinish = function () {
+          el.remove();
+          if (done) done();
+        };
+      }
+
+      function spawnParticles(x, y, kind) {
+        for (var i = 0; i < 5; i++) {
+          var p = document.createElement("div");
+          p.className = "fx-particle-wrap";
+          p.innerHTML = KV.particleHtml(kind);
+          var angle = (Math.PI * 2 * i) / 5;
+          p.style.left = (x + Math.cos(angle) * 8 - 12) + "px";
+          p.style.top = (y + Math.sin(angle) * 8 - 8) + "px";
+          document.getElementById("fxLayer").appendChild(p);
+          setTimeout(function (node) { node.remove(); }, 1000, p);
+        }
+      }
+
+      function floatLabel(x, y, text, color) {
+        var el = document.createElement("span");
+        el.className = "fx-label";
+        el.textContent = text;
+        el.style.left = x + "px";
+        el.style.top = y + "px";
+        el.style.color = color || "var(--neon-green)";
+        document.getElementById("fxLayer").appendChild(el);
+        setTimeout(function () { el.remove(); }, 1100);
+      }
+
+      function showFact(ing) {
+        if (seenFacts[ing.id]) return;
+        seenFacts[ing.id] = true;
+        document.getElementById("factChip").innerHTML = KV.ingChip(ing.id);
+        document.getElementById("factTitle").textContent = ing.n + " — did you know?";
+        document.getElementById("factText").textContent = ing.fact;
+        document.getElementById("factPopup").classList.add("open");
+      }
+
+      function resetTools() {
+        TOOLS.forEach(function (t) { toolItems[t.id] = []; });
+        document.querySelectorAll(".tool").forEach(function (el) {
+          el.classList.remove("cooking", "highlight", "sizzle", "blend-spin", "oven-glow", "wrong");
+        });
+        clearCharAnim(leoEl());
+        if (cookParticleTimer) { clearInterval(cookParticleTimer); cookParticleTimer = null; }
+        KitchenSounds.stopCookLoop();
+        document.getElementById("cookProgress").classList.remove("visible");
+        document.getElementById("cookFill").style.width = "0%";
+      }
+
+      function resetOrder() {
+        held = null;
+        stepDone = current().steps.map(function () { return false; });
+        resetTools();
+        cooking = false;
+        updateHolding();
+        renderTools();
+        renderChecklist();
+      }
+
+      function nextRecipe() {
+        recipeIdx = pickNextRecipeIndex();
+        setCustomer(Math.floor(Math.random() * 6));
+        resetOrder();
+        renderOrder();
+        var card = document.getElementById("orderCard");
+        card.classList.remove("slide-in");
+        void card.offsetWidth;
+        card.classList.add("slide-in");
+        document.getElementById("orderDish").classList.remove("wiggle");
+        void document.getElementById("orderDish").offsetWidth;
+        document.getElementById("orderDish").classList.add("wiggle");
+        KitchenSounds.order();
+      }
+
+      function renderOrder() {
+        var r = current();
+        document.getElementById("orderDish").innerHTML = KV.dishPlate(r.name);
+        document.getElementById("recipeName").textContent = r.name;
+        document.getElementById("recipeTip").textContent = "Tip: " + r.tip;
+        document.getElementById("orderMeta").innerHTML =
+          '<span class="tag">' + r.region + '</span>' +
+          '<span class="tag">' + diffLabel(r.diff) + '</span>' +
+          '<span class="tag">' + toolName(r.finish) + '</span>';
+        sayCustomer(r.customer + " wants " + r.name + "!");
+        sayLeo("Tap an ingredient, then put it in the right tool!");
+        renderChecklist();
+        highlightNextTool();
+      }
+
+      function highlightNextTool() {
+        document.querySelectorAll(".tool").forEach(function (el) { el.classList.remove("highlight"); });
+        if (mode !== "recipe" || cooking) return;
+        var idx = nextOpenStep();
+        if (idx < 0) return;
+        var need = current().steps[idx];
+        var toolEl = document.querySelector('.tool[data-tool="' + need.tool + '"]');
+        if (toolEl) toolEl.classList.add("highlight");
+      }
+
+      function renderChecklist() {
         if (mode === "creative") {
-          if (!mixed) actionBtn.textContent = "🌀 Mix it up!";
-          else if (!cookMethod) actionBtn.textContent = "Pick cooking method ↑";
-          else actionBtn.textContent = "🍽️ Serve creation!";
+          document.getElementById("checklist").innerHTML = '<span class="hint">Invent your own dish — use any tools you like!</span>';
           return;
         }
-        if (step === 0) actionBtn.textContent = "Next: Mix ingredients";
-        else if (step === 1) actionBtn.textContent = "🌀 Mix!";
-        else if (step === 2) actionBtn.textContent = cookMethod ? "🍽️ Serve dish!" : "Pick cooking method ↑";
-        else actionBtn.textContent = "🍽️ Serve!";
+        var r = current();
+        document.getElementById("checklist").innerHTML = r.steps.map(function (step, i) {
+          var done = stepDone[i];
+          var tool = TOOLS.find(function (t) { return t.id === step.tool; });
+          return (
+            '<div class="check-item' + (done ? " done" : "") + '">' +
+            KV.ingChip(step.id, "ing-chip--sm") +
+            '<span class="tool-hint">' + (done ? "Done" : (tool ? tool.name : "")) + '</span>' +
+            '</div>'
+          );
+        }).join("");
       }
 
-      function renderRecipe() {
-        if (mode !== "recipe") return;
-        var r = current();
-        document.getElementById("recipeName").textContent = r.name;
-        document.getElementById("recipeMeta").innerHTML =
-          '<span class="tag">' + r.region + "</span>" +
-          '<span class="tag">' + r.diff + "</span>" +
-          '<span class="tag">' + COOK_METHODS.find(function (m) { return m.id === r.cook; }).label + "</span>";
-        document.getElementById("recipeTip").textContent = "💡 " + r.tip;
-        var have = countMap(bowl);
-        document.getElementById("recipeNeeds").innerHTML = r.needs.map(function (e) {
-          var got = have[e] > 0;
-          if (got) have[e]--;
-          return '<span class="need-item' + (got ? " got" : "") + '">' + e + "</span>";
-        }).join("");
-        document.getElementById("cookHint").textContent = step >= 2
-          ? "Recipe wants: " + COOK_METHODS.find(function (m) { return m.id === r.cook; }).label
-          : "You'll cook after mixing!";
-        updateSteps(); updateActionBtn();
+      function updateHolding() {
+        var bar = document.getElementById("holdingBar");
+        if (!held) {
+          bar.classList.remove("has-item");
+          bar.innerHTML = cooking ? "Cooking in progress…" : "Tap an ingredient from the pantry";
+          return;
+        }
+        bar.classList.add("has-item");
+        bar.innerHTML = KV.ingChip(held.id) + "<span>Holding " + held.n + " — now tap a tool!</span>";
+      }
+
+      function totalItems() {
+        return TOOLS.reduce(function (n, t) { return n + toolItems[t.id].length; }, 0);
+      }
+
+      function updateCookBtn() {
+        document.getElementById("cookBtn").style.display =
+          mode === "creative" && !cooking && totalItems() >= 2 ? "" : "none";
+      }
+
+      function nextOpenStep() {
+        for (var i = 0; i < stepDone.length; i++) if (!stepDone[i]) return i;
+        return -1;
+      }
+
+      function allStepsDone() { return stepDone.every(function (d) { return d; }); }
+
+      function placeIngredient(toolId) {
+        if (cooking) return;
+        if (!held) { sayLeo("Pick an ingredient from the pantry first!"); return; }
+
+        var toolEl = document.querySelector('.tool[data-tool="' + toolId + '"]');
+        var fromEl = document.getElementById("holdingBar");
+        var placedId = held.id, placedName = held.n;
+
+        function afterFly() {
+          toolItems[toolId].push(placedId);
+          renderTools();
+          var c = centerOf(toolEl);
+          spawnParticles(c.x, c.y, "sparkle");
+          floatLabel(c.x - 20, c.y - 30, "Plop!", "var(--neon-blue)");
+          KitchenSounds.plop();
+        }
+
+        if (mode === "creative") {
+          flyChip(placedId, fromEl, toolEl, function () {
+            afterFly();
+            sayLeo("Added " + placedName + " to the " + toolName(toolId) + "!");
+            held = null;
+            updateHolding();
+            renderPantry();
+            updateCookBtn();
+          });
+          return;
+        }
+
+        var idx = nextOpenStep();
+        if (idx < 0) {
+          sayLeo("All ingredients are in — let us cook!");
+          held = null;
+          updateHolding();
+          startCooking();
+          return;
+        }
+
+        var need = current().steps[idx];
+        if (held.id !== need.id) {
+          sayLeo("Next up: " + KV.ingById(need.id).n + " — check the list!");
+          reactLeo(false);
+          reactCustomer(false);
+          document.getElementById("status").textContent = LEO_OOPS[Math.floor(Math.random() * LEO_OOPS.length)];
+          KitchenSounds.wrong();
+          return;
+        }
+        if (toolId !== need.tool) {
+          if (toolEl) {
+            toolEl.classList.add("wrong");
+            setTimeout(function () { toolEl.classList.remove("wrong"); }, 450);
+            spawnParticles(centerOf(toolEl).x, centerOf(toolEl).y, "sizzle");
+          }
+          sayLeo("That goes in the " + toolName(need.tool) + ", not here!");
+          reactCustomer(false);
+          reactLeo(false);
+          document.getElementById("status").textContent = LEO_OOPS[Math.floor(Math.random() * LEO_OOPS.length)];
+          KitchenSounds.wrong();
+          return;
+        }
+
+        flyChip(placedId, fromEl, toolEl, function () {
+          stepDone[idx] = true;
+          afterFly();
+          sayLeo("Perfect! " + placedName + " is in the " + toolName(toolId) + ".");
+          document.getElementById("status").textContent = "Nice! " + stepDone.filter(Boolean).length + " / " + stepDone.length + " done.";
+          held = null;
+          updateHolding();
+          renderPantry();
+          renderChecklist();
+          highlightNextTool();
+          if (allStepsDone()) setTimeout(startCooking, 500);
+        });
+      }
+
+      function cookAnimForTool(finishId, toolEl) {
+        if (!toolEl) return;
+        toolEl.classList.add("cooking");
+        if (finishId === "pan" || finishId === "grill") toolEl.classList.add("sizzle");
+        if (finishId === "blender") toolEl.classList.add("blend-spin");
+        if (finishId === "oven") toolEl.classList.add("oven-glow");
+        playLeo("stir");
+        var kind = finishId === "pan" || finishId === "grill" ? "sizzle" : finishId === "blender" ? "blend" : "steam";
+        var c = centerOf(toolEl);
+        cookParticleTimer = setInterval(function () { spawnParticles(c.x, c.y - 10, kind); }, 350);
+      }
+
+      function startCooking() {
+        if (cooking) return;
+        cooking = true;
+        held = null;
+        updateHolding();
+        document.querySelectorAll(".tool").forEach(function (el) { el.classList.remove("highlight"); });
+
+        var finishId = mode === "creative" ? TOOLS[Math.floor(Math.random() * TOOLS.length)].id : current().finish;
+        var toolEl = document.querySelector('.tool[data-tool="' + finishId + '"]');
+        cookAnimForTool(finishId, toolEl);
+
+        var cookMsg = finishId === "pan" || finishId === "grill" ? "Sizzle!" : finishId === "blender" ? "Whirr!" : finishId === "oven" ? "Baking!" : "Simmer!";
+        var soundKind = finishId === "pan" || finishId === "grill" ? "sizzle" : finishId === "blender" ? "blend" : "steam";
+        KitchenSounds.startCookLoop(soundKind);
+        if (toolEl) floatLabel(centerOf(toolEl).x - 24, centerOf(toolEl).y - 40, cookMsg, "var(--neon-pink)");
+
+        sayLeo(LEO_COOK[Math.floor(Math.random() * LEO_COOK.length)]);
+        document.getElementById("status").textContent = "Cooking…";
+        document.getElementById("cookProgress").classList.add("visible");
+        document.getElementById("cookFill").style.width = "0%";
+
+        var pct = 0;
+        var timer = setInterval(function () {
+          pct += 4;
+          document.getElementById("cookFill").style.width = pct + "%";
+          if (pct >= 100) { clearInterval(timer); finishCooking(finishId); }
+        }, 80);
+      }
+
+      function finishCooking(finishId) {
+        cooking = false;
+        var toolEl = document.querySelector('.tool[data-tool="' + finishId + '"]');
+        if (toolEl) {
+          var c = centerOf(toolEl);
+          spawnParticles(c.x, c.y, "sparkle");
+          floatLabel(c.x - 18, c.y - 36, "Ding!", "var(--neon-green)");
+        }
+        KitchenSounds.stopCookLoop();
+        KitchenSounds.ding();
+        setTimeout(function () { KitchenSounds.success(); }, 180);
+
+        var panel = document.querySelector(".game-panel");
+        panel.classList.remove("serve-flash");
+        void panel.offsetWidth;
+        panel.classList.add("serve-flash");
+        resetTools();
+
+        dishes++;
+        document.getElementById("score").textContent = dishes;
+        var bonus = mode === "recipe" ? Math.min(3, current().diff) : Math.min(3, 1 + Math.floor(Math.random() * 3));
+        stars += bonus;
+        document.getElementById("stars").textContent = stars;
+        if (dishes % 5 === 0) { level++; document.getElementById("level").textContent = level; }
+
+        if (!creativeUnlocked && dishes >= 4) {
+          creativeUnlocked = true;
+          document.getElementById("creativeModeBtn").disabled = false;
+          document.getElementById("modeHint").textContent = "Creative kitchen unlocked! Invent your own dishes.";
+        }
+
+        reactCustomer(true);
+        reactLeo(true);
+        sayCustomer("Delicious! Exactly what I wanted!");
+        sayLeo(LEO_WIN[Math.floor(Math.random() * LEO_WIN.length)]);
+
+        var dishWrap = document.getElementById("orderDish");
+        dishWrap.classList.remove("wiggle");
+        void dishWrap.offsetWidth;
+        dishWrap.classList.add("wiggle");
+
+        document.getElementById("status").textContent = (mode === "recipe" ? current().name + " served!" : "Your invention is a hit!") + " +" + bonus + " stars";
+
+        setTimeout(function () {
+          if (mode === "recipe") nextRecipe();
+          else { resetTools(); updateCookBtn(); }
+        }, 2200);
       }
 
       function renderCatTabs() {
         var box = document.getElementById("catTabs");
         box.innerHTML = "";
-        CATEGORIES.forEach(function (c) {
+        [{ id: "all", label: "All" }].concat(KV.CATEGORIES).forEach(function (c) {
           var b = document.createElement("button");
-          b.type = "button"; b.className = "cat-tab" + (cat === c.id ? " active" : "");
+          b.type = "button";
+          b.className = "cat-tab" + (cat === c.id ? " active" : "");
           b.textContent = c.label;
           b.onclick = function () { cat = c.id; renderCatTabs(); renderPantry(); };
           box.appendChild(b);
@@ -360,166 +1126,114 @@
       function renderPantry() {
         var box = document.getElementById("pantry");
         box.innerHTML = "";
-        INGREDIENTS.forEach(function (ing, idx) {
-          if (cat !== "all" && ing.c !== cat) return;
+        var list = INGREDIENTS.filter(function (ing) {
+          return cat === "all" || ing.c === cat;
+        });
+        if (cat === "all") {
+          list.sort(function (a, b) { return a.n.localeCompare(b.n); });
+        }
+        list.forEach(function (ing) {
           var b = document.createElement("button");
-          b.type = "button"; b.className = "ingredient";
+          b.type = "button";
+          b.className = "ingredient" + (held && held.id === ing.id ? " selected" : "");
           b.title = ing.n;
-          b.innerHTML = '<span class="emo">' + ing.e + '</span><span class="lbl">' + ing.n + "</span>";
+          b.innerHTML = KV.ingChip(ing.id, "ing-chip--sm");
           b.onclick = function () {
-            bowl.push(ing.e);
-            renderBowl();
-            if (mode === "recipe") renderRecipe();
-            document.getElementById("status").textContent = "Added " + ing.n + "!";
+            if (cooking) return;
+            KitchenSounds.resume();
+            KitchenSounds.pick();
+            held = ing;
+            updateHolding();
+            renderPantry();
+            highlightNextTool();
+            showFact(ing);
+            var idx = nextOpenStep();
+            sayLeo("Great choice! Now tap the " + (mode === "recipe" && idx >= 0 ? toolName(current().steps[idx].tool) : "right tool") + ".");
           };
           box.appendChild(b);
         });
       }
 
-      function renderCookBtns() {
-        var box = document.getElementById("cookBtns");
+      function renderTools() {
+        var box = document.getElementById("tools");
         box.innerHTML = "";
-        COOK_METHODS.forEach(function (m) {
-          var b = document.createElement("button");
-          b.type = "button"; b.className = "cook-btn" + (cookMethod === m.id ? " selected" : "");
-          b.textContent = m.label;
-          b.onclick = function () {
-            cookMethod = m.id;
-            renderCookBtns();
-            if (mode === "recipe" && mixed && step === 2) {
-              document.getElementById("status").textContent = "Ready to serve!";
-            }
-            updateActionBtn();
-          };
-          box.appendChild(b);
+        TOOLS.forEach(function (t) {
+          var el = document.createElement("button");
+          el.type = "button";
+          el.className = "tool";
+          el.dataset.tool = t.id;
+          var itemsHtml = toolItems[t.id].map(function (id) {
+            return '<span class="tool-item-pop">' + KV.ingChip(id, "ing-chip--sm") + "</span>";
+          }).join("");
+          el.innerHTML =
+            '<span class="tool-icon">' + KV.toolSvg(t.id) + '</span>' +
+            '<span class="tool-name">' + t.name + '</span>' +
+            '<span class="tool-items">' + itemsHtml + '</span>';
+          el.onclick = function () { placeIngredient(t.id); };
+          box.appendChild(el);
         });
+        highlightNextTool();
       }
 
-      function renderBowl() {
-        var box = document.getElementById("bowl");
-        if (!bowl.length) {
-          box.innerHTML = '<span style="color:var(--text-muted);font-size:0.85rem">Empty bowl</span>';
-          return;
+      function setMode(next) {
+        if (next === "creative" && !creativeUnlocked) return;
+        mode = next;
+        document.getElementById("recipeModeBtn").classList.toggle("active", mode === "recipe");
+        document.getElementById("creativeModeBtn").classList.toggle("active", mode === "creative");
+        document.getElementById("skipBtn").style.display = mode === "recipe" ? "" : "none";
+        if (mode === "creative") {
+          document.getElementById("orderDish").innerHTML = KV.dishPlate("Your creation");
+          document.getElementById("recipeName").textContent = "Invent your own dish!";
+          document.getElementById("recipeTip").textContent = "Mix anything — then tap Cook when you are happy.";
+          document.getElementById("orderMeta").innerHTML = '<span class="tag">Free play</span>';
+          sayCustomer("Surprise me with something crazy!");
+          sayLeo("This is the creative kitchen — no rules!");
+          stepDone = [];
+          resetTools();
+        } else {
+          resetOrder();
+          renderOrder();
         }
-        box.innerHTML = "";
-        bowl.forEach(function (e, i) {
-          var s = document.createElement("span");
-          s.className = "bowl-item"; s.textContent = e;
-          s.title = "Remove";
-          s.onclick = function () {
-            bowl.splice(i, 1);
-            renderBowl();
-            if (mode === "recipe") renderRecipe();
-          };
-          box.appendChild(s);
-        });
+        renderChecklist();
+        renderPantry();
+        updateHolding();
+        updateCookBtn();
       }
 
-      function addStars(n) {
-        stars += n;
-        if (dishes > 0 && dishes % 5 === 0) {
-          level++;
-          document.getElementById("status").textContent = "Level up! You're Chef level " + level + "! 👨‍🍳";
-        }
-        document.getElementById("stars").textContent = stars;
-        document.getElementById("level").textContent = level;
-      }
-
-      function creativeName() {
-        var type = document.getElementById("dishType").value;
-        var pre = CREATIVE_PREFIX[Math.floor(Math.random() * CREATIVE_PREFIX.length)];
-        var suf = CREATIVE_SUFFIX[Math.floor(Math.random() * CREATIVE_SUFFIX.length)];
-        var typeLabel = document.getElementById("dishType").selectedOptions[0].text.replace(/^[^\s]+\s/, "");
-        var emos = bowl.slice(0, 3).join("");
-        return pre + " " + typeLabel + " " + suf + (emos ? " " + emos : "");
-      }
-
-      function serveCreative() {
-        if (!bowl.length) {
-          document.getElementById("status").textContent = "Add some ingredients first!";
-          return;
-        }
-        if (!mixed) {
-          document.getElementById("status").textContent = "Mix your ingredients first!";
-          return;
-        }
-        if (!cookMethod) {
-          document.getElementById("status").textContent = "Pick how to cook it!";
-          return;
-        }
-        dishes++;
-        document.getElementById("score").textContent = dishes;
-        var bonus = Math.min(3, 1 + Math.floor(bowl.length / 3));
-        addStars(bonus);
-        document.getElementById("status").textContent = "You made: " + creativeName() + "! ⭐".repeat(bonus);
-        bowl = []; resetCooking(); renderBowl();
-      }
-
-      function serveRecipe() {
-        var r = current();
-        if (step === 0) {
-          if (!hasIngredients(bowl, r.needs)) {
-            document.getElementById("status").textContent = "Keep adding — check the recipe list!";
-            return;
-          }
-          step = 1; updateSteps(); updateActionBtn();
-          document.getElementById("status").textContent = "Great! Now mix everything!";
-          return;
-        }
-        if (step === 1) {
-          mixed = true; step = 2; updateSteps(); updateActionBtn();
-          document.getElementById("status").textContent = "Mixed! Now pick the right cooking method.";
-          renderRecipe();
-          return;
-        }
-        if (step === 2) {
-          if (!cookMethod) {
-            document.getElementById("status").textContent = "Choose how to cook on the right →";
-            return;
-          }
-          if (cookMethod !== r.cook) {
-            document.getElementById("status").textContent = "Wrong cooking method! Check the recipe tag.";
-            return;
-          }
-          step = 3; updateSteps(); updateActionBtn();
-          document.getElementById("status").textContent = "Smells amazing! Serve it!";
-          return;
-        }
-        dishes++;
-        document.getElementById("score").textContent = dishes;
-        var bonus = r.diff === "Hard" ? 3 : r.diff === "Medium" ? 2 : 1;
-        addStars(bonus);
-        document.getElementById("status").textContent = r.name + " served! " + "⭐".repeat(bonus);
-        bowl = [];
-        recipeIdx = (recipeIdx + 1) % RECIPES.length;
-        resetCooking();
-        renderRecipe(); renderBowl();
-      }
-
-      document.getElementById("clearBtn").onclick = function () {
-        bowl = []; resetCooking(); renderBowl();
-        if (mode === "recipe") renderRecipe();
-        document.getElementById("status").textContent = "Bowl cleared!";
+      document.getElementById("factOk").onclick = function () { document.getElementById("factPopup").classList.remove("open"); };
+      document.getElementById("factPopup").onclick = function (e) {
+        if (e.target === document.getElementById("factPopup")) document.getElementById("factPopup").classList.remove("open");
       };
-
       document.getElementById("recipeModeBtn").onclick = function () { setMode("recipe"); };
       document.getElementById("creativeModeBtn").onclick = function () { setMode("creative"); };
-      document.getElementById("shuffleBtn").onclick = function () {
-        recipeIdx = Math.floor(Math.random() * RECIPES.length);
-        bowl = []; resetCooking(); renderRecipe(); renderBowl();
-        document.getElementById("status").textContent = "New recipe: " + current().name + "!";
+      document.getElementById("skipBtn").onclick = function () {
+        if (mode !== "recipe" || cooking) return;
+        nextRecipe();
+        document.getElementById("status").textContent = "New order: " + current().name;
       };
-
-      actionBtn.onclick = function () {
-        if (mode === "creative") {
-          if (!mixed) { mixed = true; updateActionBtn(); document.getElementById("status").textContent = "Mixed! Pick a cooking method."; return; }
-          serveCreative();
-        } else {
-          serveRecipe();
-        }
+      document.getElementById("cookBtn").onclick = function () {
+        KitchenSounds.resume();
+        if (mode === "creative" && !cooking && totalItems() >= 2) startCooking();
       };
+      document.getElementById("soundBtn").onclick = function () {
+        var btn = document.getElementById("soundBtn");
+        var next = !KitchenSounds.isEnabled();
+        KitchenSounds.setEnabled(next);
+        if (next) KitchenSounds.resume();
+        btn.textContent = next ? "Sound on" : "Sound off";
+        btn.setAttribute("aria-pressed", next ? "true" : "false");
+        if (next) KitchenSounds.pick();
+      };
+      document.body.addEventListener("click", function () { KitchenSounds.resume(); }, { once: true });
 
-      renderCatTabs(); renderPantry(); renderCookBtns(); renderRecipe(); renderBowl(); updateActionBtn();
+      shuffleRecipeDeck();
+      recipeIdx = pickNextRecipeIndex();
+      renderCatTabs();
+      renderPantry();
+      renderTools();
+      resetOrder();
+      renderOrder();
+      document.getElementById("status").textContent = "New order incoming!";
     </script>
     <script src="../shared.js"></script>
   </body>
