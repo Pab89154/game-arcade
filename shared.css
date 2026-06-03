@@ -285,6 +285,43 @@ body {
   box-shadow: 0 6px 24px rgba(255, 45, 170, 0.55);
 }
 
+.bug-fab {
+  position: fixed;
+  bottom: 4.25rem;
+  right: 1.25rem;
+  z-index: 900;
+  background: linear-gradient(135deg, var(--neon-green), var(--neon-blue));
+  color: var(--text);
+  border: none;
+  padding: 0.75rem 1.1rem;
+  border-radius: 999px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(57, 255, 20, 0.35);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.bug-fab:hover {
+  transform: scale(1.05);
+  box-shadow: 0 6px 24px rgba(57, 255, 20, 0.45);
+}
+
+.bug-modal {
+  border-color: var(--neon-green);
+}
+
+.bug-page-label {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin-bottom: 0.25rem;
+}
+
+.bug-page-label strong {
+  color: var(--neon-blue);
+}
+
 .feedback-overlay {
   position: fixed;
   inset: 0;
@@ -375,7 +412,7 @@ body {
 
 .feedback-toast {
   position: fixed;
-  bottom: 5rem;
+  bottom: 7.5rem;
   right: 1.25rem;
   z-index: 1100;
   background: var(--surface);
@@ -492,6 +529,48 @@ body {
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
+}
+
+.admin-tabs {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.admin-tab {
+  background: var(--surface-hover);
+  border: 2px solid var(--ocean);
+  border-radius: 999px;
+  padding: 0.4rem 0.85rem;
+  font-family: inherit;
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  cursor: pointer;
+}
+
+.admin-tab.active {
+  background: linear-gradient(135deg, var(--neon-blue), var(--neon-purple));
+  color: var(--text);
+  border-color: transparent;
+}
+
+.admin-entry-bug {
+  border-left: 4px solid var(--neon-green);
+}
+
+.admin-entry-steps {
+  color: var(--text-muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
+  margin-top: 0.35rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.admin-badge-label.bug {
+  background: rgba(57, 255, 20, 0.15);
+  color: var(--neon-green);
 }
 
 .admin-logout {
