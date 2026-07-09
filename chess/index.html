@@ -1,0 +1,884 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Chess vs AI — Game Arcade</title>
+    <link rel="stylesheet" href="../shared.css" />
+    <style>
+      .chess-wrap {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 0.75rem;
+        width: 100%;
+      }
+
+      .board {
+        display: grid;
+        grid-template-columns: repeat(8, 1fr);
+        grid-template-rows: repeat(8, 1fr);
+        width: min(100%, 400px);
+        aspect-ratio: 1;
+        border: 4px solid #2c2421;
+        border-radius: 6px;
+        overflow: hidden;
+        box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+        background: #2c2421;
+      }
+
+      .sq {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        user-select: none;
+        line-height: 0;
+        transition: background 0.1s ease;
+        position: relative;
+      }
+
+      .sq.light { background: #f0d9b5; }
+      .sq.dark { background: #b58863; }
+
+      .sq .piece-svg {
+        width: 84%;
+        height: 84%;
+        display: block;
+        pointer-events: none;
+        filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.12));
+      }
+
+      .sq.selected { box-shadow: inset 0 0 0 3px #6faa55; }
+      .sq.target { background-color: rgba(143, 196, 108, 0.55) !important; }
+      .sq.target::after {
+        content: "";
+        width: 28%;
+        height: 28%;
+        border-radius: 50%;
+        background: rgba(80, 130, 60, 0.55);
+      }
+      .sq.capture.target::after {
+        width: 78%;
+        height: 78%;
+        border-radius: 50%;
+        background: transparent;
+        border: 3px solid rgba(180, 60, 50, 0.75);
+      }
+      .sq.last-from, .sq.last-to { background-color: rgba(255, 228, 130, 0.55) !important; }
+      .sq.check { box-shadow: inset 0 0 0 4px #d64545; }
+
+      .meta {
+        display: flex;
+        gap: 1rem;
+        flex-wrap: wrap;
+        justify-content: center;
+        font-weight: 600;
+        color: var(--text-muted);
+        font-size: 0.9rem;
+      }
+
+      .meta span { color: var(--neon-blue); }
+
+      .actions {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+        justify-content: center;
+      }
+
+      .hint {
+        color: var(--text-muted);
+        font-size: 0.85rem;
+        text-align: center;
+      }
+
+      .difficulty-panel {
+        width: 100%;
+        max-width: 400px;
+        background: var(--surface-hover);
+        border: 2px solid var(--neon-purple);
+        border-radius: var(--radius);
+        padding: 0.85rem 1rem;
+      }
+
+      .difficulty-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 0.5rem;
+        font-weight: 600;
+        color: var(--text-muted);
+        font-size: 0.9rem;
+      }
+
+      .difficulty-label {
+        color: var(--neon-green);
+        font-weight: 800;
+        font-size: 1rem;
+      }
+
+      .difficulty-slider {
+        width: 100%;
+        accent-color: var(--neon-blue);
+        cursor: pointer;
+        margin: 0.25rem 0 0.5rem;
+      }
+
+      .difficulty-scale {
+        display: flex;
+        justify-content: space-between;
+        font-size: 0.72rem;
+        font-weight: 700;
+        color: var(--text-muted);
+        gap: 0.25rem;
+      }
+
+      .difficulty-scale span {
+        flex: 1;
+        text-align: center;
+      }
+
+      .difficulty-scale span.active {
+        color: var(--neon-blue);
+      }
+
+      .board.flipped {
+        transform: rotate(180deg);
+      }
+
+      .board.flipped .sq {
+        transform: rotate(180deg);
+      }
+
+      .color-panel {
+        width: 100%;
+        max-width: 400px;
+        display: flex;
+        gap: 0.5rem;
+        justify-content: center;
+      }
+
+      .color-btn {
+        flex: 1;
+        max-width: 160px;
+        padding: 0.55rem 0.75rem;
+        border-radius: var(--radius);
+        border: 2px solid var(--ocean);
+        background: var(--surface-hover);
+        color: var(--text-muted);
+        font-family: inherit;
+        font-size: 0.9rem;
+        font-weight: 700;
+        cursor: pointer;
+        transition: border-color 0.15s, color 0.15s, background 0.15s;
+      }
+
+      .color-btn.active {
+        border-color: var(--neon-green);
+        color: var(--text);
+        background: rgba(57, 255, 20, 0.12);
+      }
+
+      .color-btn .piece-icon {
+        font-size: 1.25rem;
+        margin-right: 0.25rem;
+      }
+
+      .difficulty-hint {
+        margin-top: 0.5rem;
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="app">
+      <main class="main">
+        <a class="back-link" href="../index.html">← Back to Arcade</a>
+
+        <header class="header">
+          <div class="game-card-icon" aria-hidden="true">♟️</div>
+          <h1>Chess vs AI</h1>
+          <p class="tagline" id="tagline">You play white — beat the computer!</p>
+        </header>
+
+        <div class="game-panel">
+          <div class="meta">
+            <div>You: <span id="playerColorLabel">White</span></div>
+            <div>AI: <span id="aiColorLabel">Black</span></div>
+            <div>Moves: <span id="moveCount">0</span></div>
+          </div>
+
+          <div class="color-panel" role="group" aria-label="Choose your color">
+            <button type="button" class="color-btn active" id="playWhiteBtn" data-color="w">
+              <span class="piece-icon" aria-hidden="true">♔</span> Play as White
+            </button>
+            <button type="button" class="color-btn" id="playBlackBtn" data-color="b">
+              <span class="piece-icon" aria-hidden="true">♚</span> Play as Black
+            </button>
+          </div>
+
+          <div class="difficulty-panel">
+            <div class="difficulty-header">
+              <span>AI difficulty</span>
+              <span class="difficulty-label" id="difficultyLabel">Medium</span>
+            </div>
+            <input
+              type="range"
+              id="difficulty"
+              class="difficulty-slider"
+              min="0"
+              max="3"
+              step="1"
+              value="1"
+              aria-label="AI difficulty from Easy to Extreme"
+            />
+            <div class="difficulty-scale" id="difficultyScale">
+              <span data-level="0">Easy</span>
+              <span data-level="1" class="active">Medium</span>
+              <span data-level="2">Hard</span>
+              <span data-level="3">Extreme</span>
+            </div>
+            <p class="difficulty-hint" id="difficultyHint">Balanced play — good for practice</p>
+          </div>
+
+          <p class="status" id="status">Loading chess engine…</p>
+
+          <div class="chess-wrap">
+            <div class="board" id="board" role="grid" aria-label="Chess board"></div>
+          </div>
+
+          <div class="actions">
+            <button class="btn btn-secondary" type="button" id="newBtn">New game</button>
+          </div>
+          <p class="hint">Tap a piece, then tap where to move. Engine: Stockfish (free, open source).</p>
+        </div>
+      </main>
+    </div>
+
+    <script>
+      var PIECE_STYLE = {
+        w: { fill: "#fff8ec", shade: "#e8d9c4" },
+        b: { fill: "#c45c3a", shade: "#9a4528" },
+      };
+      var PIECE_STROKE = "#2c2421";
+
+      function piecePaths(type) {
+        switch (type) {
+          case "P":
+            return '<circle cx="20" cy="12.5" r="5.5"/>' +
+              '<path d="M13 19.5c0 5 14 5 14 0l-1.2 12.5h-11.6z"/>';
+          case "R":
+            return '<path d="M12 30h16v-8H12z"/>' +
+              '<path d="M11 22h18v-7H11z"/>' +
+              '<path d="M13 15h3.5v-4H13zm5 0h3.5v-4H18zm5 0h3.5v-4H23z"/>';
+          case "N":
+            return '<path d="M27 30h-12c0-6 2-9.5 5.5-12.2-.8-2.5-2.2-4.3-4.8-5.3 1.2 2.4.6 4.6-1.5 6.5-2.8 2.5-4.2 5.5-4.2 9.5 0 1.2.2 2.2.5 3.2 2.5-1.2 4.8-1.2 7 0 1.8-2.2 3.5-3.2 5.5-3.2z"/>' +
+              '<circle cx="22.5" cy="12" r="1.3" fill="' + PIECE_STROKE + '"/>';
+          case "B":
+            return '<path d="M20 7c-2.5 3-4 5.5-4 8.5 0 2.2 1.2 3.8 3 4.8-2.5 1.2-4 3.2-4.5 6.2l-.5 3.5h12l-.5-3.5c-.5-3-2-5-4.5-6.2 1.8-1 3-2.6 3-4.8 0-3-1.5-5.5-4-8.5z"/>' +
+              '<path d="M17 14.5h6" stroke-width="1.4"/>';
+          case "Q":
+            return '<path d="M11 30h18l-1.5-9.5c2.5-1.2 4-3.2 4.5-6 0 0-2.2 1.8-3.5 1.8s-2.8-2.5-3.5-2.5-2 2.5-3.5 2.5-3.5-1.8-3.5-1.8c.5 2.8 2 4.8 4.5 6z"/>' +
+              '<circle cx="13" cy="11" r="2.2"/><circle cx="20" cy="9" r="2.4"/><circle cx="27" cy="11" r="2.2"/>';
+          case "K":
+            return '<path d="M12 30h16v-9H12z"/>' +
+              '<path d="M14 21h12v-8c0-3-2.2-5.5-6-5.5s-6 2.5-6 5.5z"/>' +
+              '<path d="M20 8.5v5.5M17.5 11h5" stroke-width="2"/>';
+          default:
+            return "";
+        }
+      }
+
+      function pieceSvg(code, uid) {
+        if (!code) return "";
+        var color = code[0];
+        var type = code[1];
+        var style = PIECE_STYLE[color];
+        var paths = piecePaths(type);
+        var gid = "g" + uid;
+        return (
+          '<svg class="piece-svg" viewBox="0 0 40 40" aria-hidden="true">' +
+          '<defs><linearGradient id="' + gid + '" x1="0" y1="0" x2="0" y2="1">' +
+          '<stop offset="0%" stop-color="' + style.fill + '"/>' +
+          '<stop offset="100%" stop-color="' + style.shade + '"/>' +
+          "</linearGradient></defs>" +
+          '<g fill="url(#' + gid + ')" stroke="' + PIECE_STROKE + '" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round">' +
+          paths +
+          "</g></svg>"
+        );
+      }
+
+      var board, turn, selected, legalTargets, lastMove, castling, gameOver, aiThinking, moveCount;
+      var engine, engineReady, pendingAiCallback;
+      var playerColor = "w";
+
+      function aiColor() {
+        return playerColor === "w" ? "b" : "w";
+      }
+
+      function colorName(c) {
+        return c === "w" ? "White" : "Black";
+      }
+
+      function isPlayerTurn() {
+        return turn === playerColor;
+      }
+
+      function updateColorUI() {
+        document.getElementById("playWhiteBtn").classList.toggle("active", playerColor === "w");
+        document.getElementById("playBlackBtn").classList.toggle("active", playerColor === "b");
+        document.getElementById("playerColorLabel").textContent = colorName(playerColor);
+        document.getElementById("aiColorLabel").textContent = colorName(aiColor());
+        document.getElementById("tagline").textContent =
+          playerColor === "w"
+            ? "You play white — you move first!"
+            : "You play black — the AI moves first!";
+        document.getElementById("board").classList.toggle("flipped", playerColor === "b");
+      }
+
+      function maybeAiTurn() {
+        if (!gameOver && turn === aiColor() && engineReady) aiTurn();
+      }
+
+      function setPlayerColor(color) {
+        if (playerColor === color) return;
+        playerColor = color;
+        updateColorUI();
+        newGame();
+      }
+
+      function startBoard() {
+        return [
+          ["bR", "bN", "bB", "bQ", "bK", "bB", "bN", "bR"],
+          ["bP", "bP", "bP", "bP", "bP", "bP", "bP", "bP"],
+          [null, null, null, null, null, null, null, null],
+          [null, null, null, null, null, null, null, null],
+          [null, null, null, null, null, null, null, null],
+          [null, null, null, null, null, null, null, null],
+          ["wP", "wP", "wP", "wP", "wP", "wP", "wP", "wP"],
+          ["wR", "wN", "wB", "wQ", "wK", "wB", "wN", "wR"],
+        ];
+      }
+
+      function colorOf(piece) {
+        if (!piece) return null;
+        return piece[0] === "w" ? "w" : "b";
+      }
+
+      function typeOf(piece) {
+        return piece ? piece[1] : null;
+      }
+
+      function inBounds(r, c) {
+        return r >= 0 && r < 8 && c >= 0 && c < 8;
+      }
+
+      function findKing(b, color) {
+        var target = color + "K";
+        for (var r = 0; r < 8; r++) {
+          for (var c = 0; c < 8; c++) {
+            if (b[r][c] === target) return { r: r, c: c };
+          }
+        }
+        return null;
+      }
+
+      function attacked(b, r, c, byColor) {
+        for (var rr = 0; rr < 8; rr++) {
+          for (var cc = 0; cc < 8; cc++) {
+            var p = b[rr][cc];
+            if (!p || colorOf(p) !== byColor) continue;
+            var moves = pseudoMoves(b, rr, cc, p, castling, false);
+            for (var i = 0; i < moves.length; i++) {
+              if (moves[i].r === r && moves[i].c === c) return true;
+            }
+          }
+        }
+        return false;
+      }
+
+      function inCheck(b, color) {
+        var k = findKing(b, color);
+        if (!k) return false;
+        var enemy = color === "w" ? "b" : "w";
+        return attacked(b, k.r, k.c, enemy);
+      }
+
+      function pseudoMoves(b, r, c, piece, castle, inclCastle) {
+        var color = colorOf(piece);
+        var type = typeOf(piece);
+        var moves = [];
+        var dir = color === "w" ? -1 : 1;
+
+        function add(nr, nc, captureOnly) {
+          if (!inBounds(nr, nc)) return;
+          var target = b[nr][nc];
+          if (!target) {
+            if (!captureOnly) moves.push({ r: nr, c: nc });
+          } else if (colorOf(target) !== color) {
+            moves.push({ r: nr, c: nc, capture: true });
+          }
+        }
+
+        if (type === "P") {
+          var startRow = color === "w" ? 6 : 1;
+          if (!b[r + dir][c]) {
+            moves.push({ r: r + dir, c: c });
+            if (r === startRow && !b[r + dir * 2][c]) {
+              moves.push({ r: r + dir * 2, c: c });
+            }
+          }
+          [[dir, -1], [dir, 1]].forEach(function (d) {
+            var nr = r + d[0];
+            var nc = c + d[1];
+            if (inBounds(nr, nc) && b[nr][nc] && colorOf(b[nr][nc]) !== color) {
+              moves.push({ r: nr, c: nc, capture: true });
+            }
+          });
+          return moves;
+        }
+
+        if (type === "N") {
+          [[-2,-1],[-2,1],[-1,-2],[-1,2],[1,-2],[1,2],[2,-1],[2,1]].forEach(function (d) {
+            add(r + d[0], c + d[1]);
+          });
+          return moves;
+        }
+
+        if (type === "B" || type === "R" || type === "Q") {
+          var dirs = [];
+          if (type === "B" || type === "Q") dirs = dirs.concat([[-1,-1],[-1,1],[1,-1],[1,1]]);
+          if (type === "R" || type === "Q") dirs = dirs.concat([[-1,0],[1,0],[0,-1],[0,1]]);
+          dirs.forEach(function (d) {
+            var nr = r + d[0];
+            var nc = c + d[1];
+            while (inBounds(nr, nc)) {
+              if (!b[nr][nc]) {
+                moves.push({ r: nr, c: nc });
+              } else {
+                if (colorOf(b[nr][nc]) !== color) moves.push({ r: nr, c: nc, capture: true });
+                break;
+              }
+              nr += d[0];
+              nc += d[1];
+            }
+          });
+          return moves;
+        }
+
+        if (type === "K") {
+          [[-1,-1],[-1,0],[-1,1],[0,-1],[0,1],[1,-1],[1,0],[1,1]].forEach(function (d) {
+            add(r + d[0], c + d[1]);
+          });
+          if (inclCastle && castle) {
+            var row = color === "w" ? 7 : 0;
+            if (r === row && c === 4) {
+              if (castle[color].K && !b[row][5] && !b[row][6] &&
+                  b[row][7] === color + "R" &&
+                  !attacked(b, row, 4, color === "w" ? "b" : "w") &&
+                  !attacked(b, row, 5, color === "w" ? "b" : "w") &&
+                  !attacked(b, row, 6, color === "w" ? "b" : "w")) {
+                moves.push({ r: row, c: 6, castle: "K" });
+              }
+              if (castle[color].Q && !b[row][1] && !b[row][2] && !b[row][3] &&
+                  b[row][0] === color + "R" &&
+                  !attacked(b, row, 4, color === "w" ? "b" : "w") &&
+                  !attacked(b, row, 3, color === "w" ? "b" : "w") &&
+                  !attacked(b, row, 2, color === "w" ? "b" : "w")) {
+                moves.push({ r: row, c: 2, castle: "Q" });
+              }
+            }
+          }
+        }
+        return moves;
+      }
+
+      function applyMove(b, from, to, move, castleState) {
+        var nb = b.map(function (row) { return row.slice(); });
+        var nc = {
+          w: { K: castleState.w.K, Q: castleState.w.Q },
+          b: { K: castleState.b.K, Q: castleState.b.Q },
+        };
+        var piece = nb[from.r][from.c];
+        var color = colorOf(piece);
+        var type = typeOf(piece);
+
+        nb[to.r][to.c] = piece;
+        nb[from.r][from.c] = null;
+
+        if (move && move.castle === "K") {
+          var row = color === "w" ? 7 : 0;
+          nb[row][5] = color + "R";
+          nb[row][7] = null;
+        }
+        if (move && move.castle === "Q") {
+          var row2 = color === "w" ? 7 : 0;
+          nb[row2][3] = color + "R";
+          nb[row2][0] = null;
+        }
+
+        if (type === "K") {
+          nc[color].K = false;
+          nc[color].Q = false;
+        }
+        if (type === "R") {
+          if (from.c === 0) nc[color].Q = false;
+          if (from.c === 7) nc[color].K = false;
+        }
+        if (type === "P") {
+          if (to.r === 0 || to.r === 7) nb[to.r][to.c] = color + "Q";
+        }
+
+        return { board: nb, castling: nc };
+      }
+
+      function legalMovesFor(b, r, c, castleState) {
+        var piece = b[r][c];
+        if (!piece) return [];
+        var color = colorOf(piece);
+        var pseudo = pseudoMoves(b, r, c, piece, castleState, true);
+        var legal = [];
+        for (var i = 0; i < pseudo.length; i++) {
+          var m = pseudo[i];
+          var result = applyMove(b, { r: r, c: c }, { r: m.r, c: m.c }, m, castleState);
+          if (!inCheck(result.board, color)) legal.push(m);
+        }
+        return legal;
+      }
+
+      function allLegalMoves(b, color, castleState) {
+        var list = [];
+        for (var r = 0; r < 8; r++) {
+          for (var c = 0; c < 8; c++) {
+            if (colorOf(b[r][c]) !== color) continue;
+            var moves = legalMovesFor(b, r, c, castleState);
+            for (var i = 0; i < moves.length; i++) {
+              list.push({ from: { r: r, c: c }, to: { r: moves[i].r, c: moves[i].c }, move: moves[i] });
+            }
+          }
+        }
+        return list;
+      }
+
+      function boardToFen() {
+        var rows = [];
+        for (var r = 0; r < 8; r++) {
+          var empty = 0;
+          var row = "";
+          for (var c = 0; c < 8; c++) {
+            var p = board[r][c];
+            if (!p) {
+              empty++;
+            } else {
+              if (empty) { row += empty; empty = 0; }
+              var ch = typeOf(p);
+              row += colorOf(p) === "w" ? ch : ch.toLowerCase();
+            }
+          }
+          if (empty) row += empty;
+          rows.push(row);
+        }
+        var rights = "";
+        if (castling.w.K && board[7][4] === "wK" && board[7][7] === "wR") rights += "K";
+        if (castling.w.Q && board[7][4] === "wK" && board[7][0] === "wR") rights += "Q";
+        if (castling.b.K && board[0][4] === "bK" && board[0][7] === "bR") rights += "k";
+        if (castling.b.Q && board[0][4] === "bK" && board[0][0] === "bR") rights += "q";
+        return rows.join("/") + " " + turn + " " + (rights || "-") + " - 0 " + Math.max(1, Math.floor(moveCount / 2) + 1);
+      }
+
+      function uciSquareToRC(sq) {
+        return { r: 8 - parseInt(sq[1], 10), c: sq.charCodeAt(0) - 97 };
+      }
+
+      function moveFromUci(uci) {
+        var from = uciSquareToRC(uci.slice(0, 2));
+        var to = uciSquareToRC(uci.slice(2, 4));
+        var legal = legalMovesFor(board, from.r, from.c, castling);
+        for (var i = 0; i < legal.length; i++) {
+          if (legal[i].r === to.r && legal[i].c === to.c) {
+            return { from: from, to: to, move: legal[i] };
+          }
+        }
+        return null;
+      }
+
+      function initEngine() {
+        try {
+          engine = new Worker("stockfish.js");
+        } catch (err) {
+          document.getElementById("status").textContent = "Could not load Stockfish. Refresh the page.";
+          return;
+        }
+
+        engine.onmessage = function (e) {
+          var line = typeof e.data === "string" ? e.data : "";
+          if (line === "readyok") {
+            engineReady = true;
+            updateStatus();
+            maybeAiTurn();
+          }
+          if (line.indexOf("bestmove ") === 0) {
+            var parts = line.split(" ");
+            var uci = parts[1];
+            if (pendingAiCallback) {
+              var cb = pendingAiCallback;
+              pendingAiCallback = null;
+              cb(uci);
+            }
+          }
+        };
+
+        engine.postMessage("uci");
+        applyEngineDifficulty();
+        engine.postMessage("isready");
+      }
+
+      var LEVEL_KEYS = ["easy", "medium", "hard", "extreme"];
+
+      var DIFFICULTY = {
+        easy: {
+          label: "Easy",
+          skill: 0,
+          depth: 2,
+          movetime: 250,
+          hint: "Makes lots of mistakes — great for beginners",
+        },
+        medium: {
+          label: "Medium",
+          skill: 8,
+          depth: 8,
+          movetime: 600,
+          hint: "Balanced play — good for practice",
+        },
+        hard: {
+          label: "Hard",
+          skill: 16,
+          depth: 14,
+          movetime: 1200,
+          hint: "Strong tactics — thinks several moves ahead",
+        },
+        extreme: {
+          label: "Extreme",
+          skill: 20,
+          depth: 20,
+          movetime: 0,
+          hint: "Maximum strength — very tough to beat!",
+        },
+      };
+
+      function getDifficultyIndex() {
+        var idx = parseInt(document.getElementById("difficulty").value, 10);
+        if (isNaN(idx) || idx < 0) return 1;
+        if (idx > 3) return 3;
+        return idx;
+      }
+
+      function getDifficulty() {
+        return DIFFICULTY[LEVEL_KEYS[getDifficultyIndex()]] || DIFFICULTY.medium;
+      }
+
+      function updateDifficultyUI() {
+        var d = getDifficulty();
+        var idx = getDifficultyIndex();
+        document.getElementById("difficultyLabel").textContent = d.label;
+        document.getElementById("difficultyHint").textContent = d.hint;
+        document.querySelectorAll("#difficultyScale span").forEach(function (el) {
+          el.classList.toggle("active", parseInt(el.dataset.level, 10) === idx);
+        });
+      }
+
+      function applyEngineDifficulty() {
+        if (!engine) return;
+        var d = getDifficulty();
+        engine.postMessage("setoption name Skill Level value " + d.skill);
+        updateDifficultyUI();
+      }
+
+      function onDifficultyChanged() {
+        if (engine && aiThinking) {
+          engine.postMessage("stop");
+          pendingAiCallback = null;
+          aiThinking = false;
+          applyEngineDifficulty();
+          if (!gameOver && turn === aiColor()) {
+            document.getElementById("status").textContent = "Difficulty updated — AI rethinking…";
+            aiTurn();
+            return;
+          }
+        }
+        applyEngineDifficulty();
+      }
+
+      function requestStockfishMove(callback) {
+        if (!engineReady) {
+          setTimeout(function () { requestStockfishMove(callback); }, 120);
+          return;
+        }
+        var d = getDifficulty();
+        pendingAiCallback = callback;
+        engine.postMessage("position fen " + boardToFen());
+        if (d.movetime > 0) {
+          engine.postMessage("go depth " + d.depth + " movetime " + d.movetime);
+        } else {
+          engine.postMessage("go depth " + d.depth);
+        }
+      }
+
+      function render() {
+        var el = document.getElementById("board");
+        el.innerHTML = "";
+        var kingPos = findKing(board, turn);
+        var checked = inCheck(board, turn);
+
+        for (var r = 0; r < 8; r++) {
+          for (var c = 0; c < 8; c++) {
+            var sq = document.createElement("button");
+            sq.type = "button";
+            sq.className = "sq " + ((r + c) % 2 === 0 ? "light" : "dark");
+            sq.dataset.r = r;
+            sq.dataset.c = c;
+            sq.setAttribute("aria-label", "Square " + (8 - r) + String.fromCharCode(97 + c));
+
+            if (selected && selected.r === r && selected.c === c) sq.classList.add("selected");
+            if (legalTargets.some(function (t) { return t.r === r && t.c === c; })) {
+              sq.classList.add("target");
+              if (board[r][c]) sq.classList.add("capture");
+            }
+            if (lastMove && ((lastMove.from.r === r && lastMove.from.c === c) || (lastMove.to.r === r && lastMove.to.c === c))) {
+              sq.classList.add(lastMove.from.r === r ? "last-from" : "last-to");
+            }
+            if (checked && kingPos && kingPos.r === r && kingPos.c === c) sq.classList.add("check");
+
+            sq.innerHTML = board[r][c] ? pieceSvg(board[r][c], r + "-" + c) : "";
+            sq.addEventListener("click", onSquareClick);
+            el.appendChild(sq);
+          }
+        }
+      }
+
+      function updateStatus() {
+        if (gameOver) return;
+        var moves = allLegalMoves(board, turn, castling);
+        var checked = inCheck(board, turn);
+        if (!moves.length) {
+          gameOver = true;
+          if (checked) {
+            document.getElementById("status").textContent =
+              turn === playerColor ? "Checkmate — you lose!" : "Checkmate — you win!";
+          } else {
+            document.getElementById("status").textContent = "Stalemate — it's a draw.";
+          }
+          return;
+        }
+        if (isPlayerTurn()) {
+          document.getElementById("status").textContent =
+            checked ? "You are in check!" : "Your turn — click a piece";
+        } else if (aiThinking) {
+          document.getElementById("status").textContent = "Stockfish is thinking…";
+        } else {
+          document.getElementById("status").textContent = "Waiting for AI…";
+        }
+      }
+
+      function doMove(from, to, move) {
+        var res = applyMove(board, from, to, move, castling);
+        board = res.board;
+        castling = res.castling;
+        lastMove = { from: from, to: to };
+        moveCount++;
+        document.getElementById("moveCount").textContent = moveCount;
+        selected = null;
+        legalTargets = [];
+        turn = turn === "w" ? "b" : "w";
+        render();
+        updateStatus();
+        maybeAiTurn();
+      }
+
+      function aiTurn() {
+        if (gameOver || turn !== aiColor() || aiThinking) return;
+        aiThinking = true;
+        document.getElementById("status").textContent = "Stockfish is thinking…";
+        requestStockfishMove(function (uci) {
+          aiThinking = false;
+          if (!uci || uci === "(none)") {
+            updateStatus();
+            return;
+          }
+          var mv = moveFromUci(uci);
+          if (!mv) {
+            var fallback = allLegalMoves(board, aiColor(), castling);
+            if (fallback.length) mv = fallback[0];
+          }
+          if (!mv) {
+            updateStatus();
+            return;
+          }
+          doMove(mv.from, mv.to, mv.move);
+        });
+      }
+
+      function onSquareClick(e) {
+        if (gameOver || aiThinking || !isPlayerTurn()) return;
+        var r = parseInt(e.currentTarget.dataset.r, 10);
+        var c = parseInt(e.currentTarget.dataset.c, 10);
+
+        if (selected) {
+          var hit = legalTargets.find(function (t) { return t.r === r && t.c === c; });
+          if (hit) {
+            doMove(selected, { r: r, c: c }, hit);
+            return;
+          }
+        }
+
+        if (board[r][c] && colorOf(board[r][c]) === playerColor) {
+          selected = { r: r, c: c };
+          legalTargets = legalMovesFor(board, r, c, castling);
+          render();
+          return;
+        }
+
+        selected = null;
+        legalTargets = [];
+        render();
+      }
+
+      function newGame() {
+        board = startBoard();
+        turn = "w";
+        selected = null;
+        legalTargets = [];
+        lastMove = null;
+        gameOver = false;
+        aiThinking = false;
+        moveCount = 0;
+        castling = { w: { K: true, Q: true }, b: { K: true, Q: true } };
+        document.getElementById("moveCount").textContent = "0";
+        document.getElementById("status").textContent = engineReady
+          ? (isPlayerTurn() ? "Your turn — click a piece to move" : "Stockfish is thinking…")
+          : "Loading chess engine…";
+        render();
+        maybeAiTurn();
+      }
+
+      document.getElementById("newBtn").addEventListener("click", newGame);
+      document.getElementById("playWhiteBtn").addEventListener("click", function () { setPlayerColor("w"); });
+      document.getElementById("playBlackBtn").addEventListener("click", function () { setPlayerColor("b"); });
+      document.getElementById("difficulty").addEventListener("input", onDifficultyChanged);
+      document.querySelectorAll("#difficultyScale span").forEach(function (el) {
+        el.addEventListener("click", function () {
+          document.getElementById("difficulty").value = el.dataset.level;
+          onDifficultyChanged();
+        });
+      });
+      updateDifficultyUI();
+      updateColorUI();
+      newGame();
+      initEngine();
+    </script>
+    <script src="../shared.js"></script>
+  </body>
+</html>
