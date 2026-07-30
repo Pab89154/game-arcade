@@ -14,11 +14,11 @@
   function getPageName() {
     const path = window.location.pathname;
     if (path.endsWith("/games/index.html") || path.endsWith("/games/") || path.endsWith("/games")) {
-      return "Game Arcade (home)";
+      return "Game Central (home)";
     }
     const parts = path.split("/");
     const folder = parts[parts.length - 2];
-    return folder ? folder.replace(/-/g, " ") : "Game Arcade";
+    return folder ? folder.replace(/-/g, " ") : "Game Central";
   }
 
   function makeId() {
