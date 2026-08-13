@@ -2,7 +2,9 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
     <title>Chess vs AI — Game Central</title>
     <link rel="icon" type="image/png" sizes="256x256" href="../favicon.png" />
     <link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png?v=ios18" />
@@ -21,12 +23,17 @@
         grid-template-columns: repeat(8, 1fr);
         grid-template-rows: repeat(8, 1fr);
         width: min(100%, 400px);
+        max-width: 100%;
         aspect-ratio: 1;
         border: 4px solid #2c2421;
         border-radius: 6px;
         overflow: hidden;
         box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
         background: #2c2421;
+        -webkit-user-select: none;
+        user-select: none;
+        touch-action: manipulation;
+        -webkit-touch-callout: none;
       }
 
       .sq {
@@ -34,21 +41,35 @@
         align-items: center;
         justify-content: center;
         cursor: pointer;
+        -webkit-user-select: none;
         user-select: none;
         line-height: 0;
         transition: background 0.1s ease;
         position: relative;
+        border: none;
+        padding: 0;
+        margin: 0;
+        appearance: none;
+        -webkit-appearance: none;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
+        min-width: 0;
+        min-height: 0;
       }
 
       .sq.light { background: #f0d9b5; }
       .sq.dark { background: #b58863; }
 
-      .sq .piece-svg {
-        width: 84%;
-        height: 84%;
+      .sq .piece-img {
+        width: 90%;
+        height: 90%;
         display: block;
         pointer-events: none;
-        filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.12));
+        -webkit-user-select: none;
+        user-select: none;
+        -webkit-user-drag: none;
+        -webkit-touch-callout: none;
+        filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.2));
       }
 
       .sq.selected { box-shadow: inset 0 0 0 3px #6faa55; }
@@ -124,7 +145,9 @@
         width: 100%;
         accent-color: var(--neon-blue);
         cursor: pointer;
-        margin: 0.25rem 0 0.5rem;
+        margin: 0.35rem 0 0.55rem;
+        height: 28px;
+        touch-action: manipulation;
       }
 
       .difficulty-scale {
@@ -139,18 +162,26 @@
       .difficulty-scale span {
         flex: 1;
         text-align: center;
+        padding: 0.45rem 0.15rem;
+        border-radius: 8px;
+        cursor: pointer;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
       }
 
       .difficulty-scale span.active {
         color: var(--neon-blue);
+        background: rgba(0, 217, 255, 0.12);
       }
 
       .board.flipped {
         transform: rotate(180deg);
+        -webkit-transform: rotate(180deg);
       }
 
       .board.flipped .sq {
         transform: rotate(180deg);
+        -webkit-transform: rotate(180deg);
       }
 
       .color-panel {
@@ -164,7 +195,7 @@
       .color-btn {
         flex: 1;
         max-width: 160px;
-        padding: 0.55rem 0.75rem;
+        padding: 0.7rem 0.75rem;
         border-radius: var(--radius);
         border: 2px solid var(--ocean);
         background: var(--surface-hover);
@@ -174,6 +205,8 @@
         font-weight: 700;
         cursor: pointer;
         transition: border-color 0.15s, color 0.15s, background 0.15s;
+        touch-action: manipulation;
+        -webkit-tap-highlight-color: transparent;
       }
 
       .color-btn.active {
@@ -192,6 +225,17 @@
         font-size: 0.8rem;
         color: var(--text-muted);
         text-align: center;
+      }
+
+      @media (max-width: 520px) {
+        .board {
+          width: min(100%, 360px);
+        }
+
+        .color-btn {
+          font-size: 0.82rem;
+          padding: 0.65rem 0.4rem;
+        }
       }
     </style>
   </head>
@@ -261,61 +305,39 @@
     </div>
 
     <script>
-      var PIECE_STYLE = {
-        w: { fill: "#fff8ec", shade: "#e8d9c4" },
-        b: { fill: "#c45c3a", shade: "#9a4528" },
+      var PIECE_FILES = {
+        wK: "pieces/wK.svg",
+        wQ: "pieces/wQ.svg",
+        wR: "pieces/wR.svg",
+        wB: "pieces/wB.svg",
+        wN: "pieces/wN.svg",
+        wP: "pieces/wP.svg",
+        bK: "pieces/bK.svg",
+        bQ: "pieces/bQ.svg",
+        bR: "pieces/bR.svg",
+        bB: "pieces/bB.svg",
+        bN: "pieces/bN.svg",
+        bP: "pieces/bP.svg",
       };
-      var PIECE_STROKE = "#2c2421";
 
-      function piecePaths(type) {
-        switch (type) {
-          case "P":
-            return '<circle cx="20" cy="12.5" r="5.5"/>' +
-              '<path d="M13 19.5c0 5 14 5 14 0l-1.2 12.5h-11.6z"/>';
-          case "R":
-            return '<path d="M12 30h16v-8H12z"/>' +
-              '<path d="M11 22h18v-7H11z"/>' +
-              '<path d="M13 15h3.5v-4H13zm5 0h3.5v-4H18zm5 0h3.5v-4H23z"/>';
-          case "N":
-            return '<path d="M27 30h-12c0-6 2-9.5 5.5-12.2-.8-2.5-2.2-4.3-4.8-5.3 1.2 2.4.6 4.6-1.5 6.5-2.8 2.5-4.2 5.5-4.2 9.5 0 1.2.2 2.2.5 3.2 2.5-1.2 4.8-1.2 7 0 1.8-2.2 3.5-3.2 5.5-3.2z"/>' +
-              '<circle cx="22.5" cy="12" r="1.3" fill="' + PIECE_STROKE + '"/>';
-          case "B":
-            return '<path d="M20 7c-2.5 3-4 5.5-4 8.5 0 2.2 1.2 3.8 3 4.8-2.5 1.2-4 3.2-4.5 6.2l-.5 3.5h12l-.5-3.5c-.5-3-2-5-4.5-6.2 1.8-1 3-2.6 3-4.8 0-3-1.5-5.5-4-8.5z"/>' +
-              '<path d="M17 14.5h6" stroke-width="1.4"/>';
-          case "Q":
-            return '<path d="M11 30h18l-1.5-9.5c2.5-1.2 4-3.2 4.5-6 0 0-2.2 1.8-3.5 1.8s-2.8-2.5-3.5-2.5-2 2.5-3.5 2.5-3.5-1.8-3.5-1.8c.5 2.8 2 4.8 4.5 6z"/>' +
-              '<circle cx="13" cy="11" r="2.2"/><circle cx="20" cy="9" r="2.4"/><circle cx="27" cy="11" r="2.2"/>';
-          case "K":
-            return '<path d="M12 30h16v-9H12z"/>' +
-              '<path d="M14 21h12v-8c0-3-2.2-5.5-6-5.5s-6 2.5-6 5.5z"/>' +
-              '<path d="M20 8.5v5.5M17.5 11h5" stroke-width="2"/>';
-          default:
-            return "";
-        }
-      }
-
-      function pieceSvg(code, uid) {
-        if (!code) return "";
-        var color = code[0];
-        var type = code[1];
-        var style = PIECE_STYLE[color];
-        var paths = piecePaths(type);
-        var gid = "g" + uid;
+      function pieceHtml(code) {
+        if (!code || !PIECE_FILES[code]) return "";
         return (
-          '<svg class="piece-svg" viewBox="0 0 40 40" aria-hidden="true">' +
-          '<defs><linearGradient id="' + gid + '" x1="0" y1="0" x2="0" y2="1">' +
-          '<stop offset="0%" stop-color="' + style.fill + '"/>' +
-          '<stop offset="100%" stop-color="' + style.shade + '"/>' +
-          "</linearGradient></defs>" +
-          '<g fill="url(#' + gid + ')" stroke="' + PIECE_STROKE + '" stroke-width="1.9" stroke-linejoin="round" stroke-linecap="round">' +
-          paths +
-          "</g></svg>"
+          '<img class="piece-img" src="' +
+          PIECE_FILES[code] +
+          '" alt="" draggable="false" decoding="async" />'
         );
       }
 
       var board, turn, selected, legalTargets, lastMove, castling, gameOver, aiThinking, moveCount;
-      var engine, engineReady, pendingAiCallback;
+      var engine, engineReady, pendingAiCallback, engineBootTimer, engineUsingAsm;
       var playerColor = "w";
+      var boardBound = false;
+
+      function isIOS() {
+        return /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+          (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+      }
 
       function aiColor() {
         return playerColor === "w" ? "b" : "w";
@@ -607,35 +629,122 @@
         return null;
       }
 
-      function initEngine() {
+      function wasmSupported() {
         try {
-          engine = new Worker("stockfish.js");
+          return (
+            typeof WebAssembly === "object" &&
+            typeof WebAssembly.instantiate === "function" &&
+            WebAssembly.validate(Uint8Array.of(0x0, 0x61, 0x73, 0x6d, 0x01, 0x00, 0x00, 0x00))
+          );
         } catch (err) {
+          return false;
+        }
+      }
+
+      function clearEngineBootTimer() {
+        if (engineBootTimer) {
+          clearTimeout(engineBootTimer);
+          engineBootTimer = null;
+        }
+      }
+
+      function configureEngineAfterUci() {
+        if (!engine) return;
+        // Smaller hash is safer on iPhone memory limits.
+        engine.postMessage("setoption name Hash value " + (isIOS() ? 8 : 16));
+        engine.postMessage("setoption name Threads value 1");
+        applyEngineDifficulty();
+        engine.postMessage("isready");
+      }
+
+      function handleEngineLine(line) {
+        if (line === "uciok") {
+          configureEngineAfterUci();
+          return;
+        }
+        if (line === "readyok") {
+          clearEngineBootTimer();
+          engineReady = true;
+          updateStatus();
+          maybeAiTurn();
+          return;
+        }
+        if (line.indexOf("bestmove ") === 0) {
+          var parts = line.split(" ");
+          var uci = parts[1];
+          if (pendingAiCallback) {
+            var cb = pendingAiCallback;
+            pendingAiCallback = null;
+            cb(uci);
+          }
+        }
+      }
+
+      function startEngineWorker(workerFile, allowFallback) {
+        clearEngineBootTimer();
+        engineReady = false;
+        try {
+          if (engine) {
+            try { engine.terminate(); } catch (e) {}
+            engine = null;
+          }
+          engine = new Worker(workerFile);
+        } catch (err) {
+          if (allowFallback && workerFile.indexOf("wasm") !== -1) {
+            engineUsingAsm = true;
+            startEngineWorker("stockfish.js", false);
+            return;
+          }
           document.getElementById("status").textContent = "Could not load Stockfish. Refresh the page.";
           return;
         }
 
-        engine.onmessage = function (e) {
-          var line = typeof e.data === "string" ? e.data : "";
-          if (line === "readyok") {
-            engineReady = true;
-            updateStatus();
-            maybeAiTurn();
-          }
-          if (line.indexOf("bestmove ") === 0) {
-            var parts = line.split(" ");
-            var uci = parts[1];
-            if (pendingAiCallback) {
-              var cb = pendingAiCallback;
-              pendingAiCallback = null;
-              cb(uci);
-            }
+        engine.onerror = function () {
+          if (allowFallback && !engineUsingAsm) {
+            engineUsingAsm = true;
+            document.getElementById("status").textContent = "Retrying engine for this device…";
+            startEngineWorker("stockfish.js", false);
           }
         };
 
-        engine.postMessage("uci");
-        applyEngineDifficulty();
-        engine.postMessage("isready");
+        engine.onmessage = function (e) {
+          var data = e.data;
+          if (typeof data === "string") {
+            handleEngineLine(data);
+            return;
+          }
+          // Some Safari builds wrap worker messages.
+          if (data && typeof data === "object") {
+            if (typeof data.data === "string") handleEngineLine(data.data);
+            else if (typeof data.text === "string") handleEngineLine(data.text);
+          }
+        };
+
+        // If WASM never becomes ready on iOS, fall back to the asm.js engine.
+        if (allowFallback) {
+          engineBootTimer = setTimeout(function () {
+            if (engineReady || engineUsingAsm) return;
+            engineUsingAsm = true;
+            document.getElementById("status").textContent = "Retrying engine for this device…";
+            startEngineWorker("stockfish.js", false);
+          }, isIOS() ? 6000 : 10000);
+        }
+
+        try {
+          engine.postMessage("uci");
+        } catch (err) {
+          if (allowFallback) {
+            engineUsingAsm = true;
+            startEngineWorker("stockfish.js", false);
+          }
+        }
+      }
+
+      function initEngine() {
+        engineUsingAsm = false;
+        var preferWasm = wasmSupported();
+        // Wait for uciok before sending options — required for reliable Safari/iOS boot.
+        startEngineWorker(preferWasm ? "stockfish.wasm.js" : "stockfish.js", preferWasm);
       }
 
       var LEVEL_KEYS = ["easy", "medium", "hard", "extreme"];
@@ -644,30 +753,34 @@
         easy: {
           label: "Easy",
           skill: 0,
-          depth: 2,
-          movetime: 250,
-          hint: "Makes lots of mistakes — great for beginners",
+          depth: 1,
+          movetime: 60,
+          mistakeChance: 0.55,
+          hint: "Plays randomly a lot — easy to beat",
         },
         medium: {
           label: "Medium",
-          skill: 8,
-          depth: 8,
-          movetime: 600,
-          hint: "Balanced play — good for practice",
+          skill: 6,
+          depth: 5,
+          movetime: 200,
+          mistakeChance: 0.18,
+          hint: "Solid play with occasional mistakes",
         },
         hard: {
           label: "Hard",
-          skill: 16,
-          depth: 14,
-          movetime: 1200,
-          hint: "Strong tactics — thinks several moves ahead",
+          skill: 14,
+          depth: 10,
+          movetime: 550,
+          mistakeChance: 0,
+          hint: "Strong play — few mistakes",
         },
         extreme: {
           label: "Extreme",
           skill: 20,
-          depth: 20,
-          movetime: 0,
-          hint: "Maximum strength — very tough to beat!",
+          depth: 14,
+          movetime: 1000,
+          mistakeChance: 0,
+          hint: "Full strength — very hard to beat",
         },
       };
 
@@ -696,7 +809,34 @@
         if (!engine) return;
         var d = getDifficulty();
         engine.postMessage("setoption name Skill Level value " + d.skill);
+        // Extra weakness knobs (ignored safely if this build doesn't support them).
+        engine.postMessage("setoption name Skill Level Maximum Error value " + (20 - d.skill) * 10);
+        engine.postMessage("setoption name Skill Level Probability value " + Math.max(1, 100 - d.skill * 4));
         updateDifficultyUI();
+      }
+
+      function moveToUci(from, to, move) {
+        var uci =
+          String.fromCharCode(97 + from.c) +
+          (8 - from.r) +
+          String.fromCharCode(97 + to.c) +
+          (8 - to.r);
+        if (move && move.promote) uci += String(move.promote).toLowerCase();
+        return uci;
+      }
+
+      function randomLegalUci() {
+        var moves = allLegalMoves(board, aiColor(), castling);
+        if (!moves.length) return null;
+        var pick = moves[Math.floor(Math.random() * moves.length)];
+        return moveToUci(pick.from, pick.to, pick.move);
+      }
+
+      function maybeWeakenMove(uci) {
+        var d = getDifficulty();
+        if (!d.mistakeChance || Math.random() >= d.mistakeChance) return uci;
+        var weak = randomLegalUci();
+        return weak || uci;
       }
 
       function onDifficultyChanged() {
@@ -716,17 +856,18 @@
 
       function requestStockfishMove(callback) {
         if (!engineReady) {
-          setTimeout(function () { requestStockfishMove(callback); }, 120);
+          setTimeout(function () { requestStockfishMove(callback); }, 60);
           return;
         }
         var d = getDifficulty();
-        pendingAiCallback = callback;
+        pendingAiCallback = function (uci) {
+          callback(maybeWeakenMove(uci));
+        };
         engine.postMessage("position fen " + boardToFen());
-        if (d.movetime > 0) {
-          engine.postMessage("go depth " + d.depth + " movetime " + d.movetime);
-        } else {
-          engine.postMessage("go depth " + d.depth);
-        }
+        // Cap think time so moves stay snappy; slightly tighter on iOS to avoid Safari stalls.
+        var thinkMs = d.movetime;
+        if (isIOS() && thinkMs > 700) thinkMs = 700;
+        engine.postMessage("go depth " + d.depth + " movetime " + thinkMs);
       }
 
       function render() {
@@ -754,10 +895,19 @@
             }
             if (checked && kingPos && kingPos.r === r && kingPos.c === c) sq.classList.add("check");
 
-            sq.innerHTML = board[r][c] ? pieceSvg(board[r][c], r + "-" + c) : "";
-            sq.addEventListener("click", onSquareClick);
+            sq.innerHTML = board[r][c] ? pieceHtml(board[r][c]) : "";
             el.appendChild(sq);
           }
+        }
+
+        if (!boardBound) {
+          boardBound = true;
+          // One delegated listener is more reliable on iOS than rebinding every render.
+          el.addEventListener("click", function (e) {
+            var sqEl = e.target.closest ? e.target.closest(".sq") : null;
+            if (!sqEl || !el.contains(sqEl)) return;
+            onSquareClick(sqEl);
+          });
         }
       }
 
@@ -777,7 +927,7 @@
         }
         if (isPlayerTurn()) {
           document.getElementById("status").textContent =
-            checked ? "You are in check!" : "Your turn — click a piece";
+            checked ? "You are in check!" : "Your turn — tap a piece";
         } else if (aiThinking) {
           document.getElementById("status").textContent = "Stockfish is thinking…";
         } else {
@@ -823,10 +973,10 @@
         });
       }
 
-      function onSquareClick(e) {
+      function onSquareClick(target) {
         if (gameOver || aiThinking || !isPlayerTurn()) return;
-        var r = parseInt(e.currentTarget.dataset.r, 10);
-        var c = parseInt(e.currentTarget.dataset.c, 10);
+        var r = parseInt(target.dataset.r, 10);
+        var c = parseInt(target.dataset.c, 10);
 
         if (selected) {
           var hit = legalTargets.find(function (t) { return t.r === r && t.c === c; });
@@ -860,7 +1010,7 @@
         castling = { w: { K: true, Q: true }, b: { K: true, Q: true } };
         document.getElementById("moveCount").textContent = "0";
         document.getElementById("status").textContent = engineReady
-          ? (isPlayerTurn() ? "Your turn — click a piece to move" : "Stockfish is thinking…")
+          ? (isPlayerTurn() ? "Your turn — tap a piece to move" : "Stockfish is thinking…")
           : "Loading chess engine…";
         render();
         maybeAiTurn();
@@ -869,10 +1019,12 @@
       document.getElementById("newBtn").addEventListener("click", newGame);
       document.getElementById("playWhiteBtn").addEventListener("click", function () { setPlayerColor("w"); });
       document.getElementById("playBlackBtn").addEventListener("click", function () { setPlayerColor("b"); });
-      document.getElementById("difficulty").addEventListener("input", onDifficultyChanged);
+      var difficultyEl = document.getElementById("difficulty");
+      difficultyEl.addEventListener("input", onDifficultyChanged);
+      difficultyEl.addEventListener("change", onDifficultyChanged);
       document.querySelectorAll("#difficultyScale span").forEach(function (el) {
         el.addEventListener("click", function () {
-          document.getElementById("difficulty").value = el.dataset.level;
+          difficultyEl.value = el.dataset.level;
           onDifficultyChanged();
         });
       });
